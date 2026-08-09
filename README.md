@@ -213,9 +213,3 @@ make check       # 依次运行以上全部门禁
 ```
 
 真实 Provider 测试带 `integration` build tag，默认跳过。只有已经配置真实密钥并明确要验证模型链路时，才使用 `RUSHES_REQUIRE_LIVE_MODELS=1` 强制运行。
-
-## 进一步了解
-
-- [Rushes 项目复盘：产品边界、完整工作流与工程取舍](https://yoryon.com/projects/rushes/)
-- [核心架构与运行时不变量](docs/architecture.md)
-- [端到端测试说明](e2e/README.md)
