@@ -1,12 +1,157 @@
 # Rushes
 
-Rushes 是一个本地优先的对话式视频剪辑 Agent：导入素材后，Agent 会理解画面、生成帧级时间线、渲染预览，并在用户确认后导出 MP4。
+面向视频创作者的 **本地优先对话式剪辑 Agent**。
 
-本仓库的后端是一次面向生产语义的精简核心重写：**Go 1.26 + CloudWeGo Eino + chi + modernc SQLite + ffmpeg**。保留「导入 → 理解 → 对话编辑 → 预览 → 导出」完整主线，删除被取代的后端与未进入主线的长尾能力。
+它解决的不是「用一句 prompt 生成一条视频」，而是更具体的编辑问题：怎样让一个知道成片意图、却不熟悉轨道、关键帧和编解码的人，通过自然语言完成可验证、可回退、可以真正交付的剪辑。
 
-## 快速开始
+<img
+  src="docs/assets/rushes-flow.svg"
+  alt="Rushes 将本地素材和用户意图转成结构化证据，由 Eino ReAct Agent 提交原子时间线操作，再通过 Reducer、SQLite、FFmpeg、质量门禁和人工确认导出成片"
+  width="100%"
+/>
+<br>
+<sub>Rushes 对话式剪辑架构 · 语义决策层与本地确定性执行层</sub>
 
-需要 Go 1.26、Node.js 24、ffmpeg/ffprobe、aubio，以及 pnpm 10.13.1。macOS 可运行：
+## 产品设计
+
+传统专业剪辑软件要求用户先学会时间线、轨道和参数；黑盒式 AI 成片工具又经常把「理解意图」和「直接生成结果」绑在一起，难以解释改了什么，也很难安全返工。
+
+Rushes 把自然语言变成剪辑控制层，但仍让帧级时间线成为成片的唯一事实源：
+
+- 用户负责描述意图、判断效果，并确认破坏性动作和最终导出。
+- Agent 负责检索素材证据，把开放的创作判断拆成受约束的原子编辑。
+- Harness 负责素材索引、状态注入、权限、Stop Gate、预览和质量检查。
+- 本地 Worker 负责 FFmpeg 媒体任务；Reducer 与 SQLite 负责版本、幂等和可靠落盘。
+
+因此，Rushes 不是「聊天框贴在剪辑器旁边」，也不是把整条生产链交给一个黑盒模型。它是一套 **一个主编辑 Agent + 专业工具 + 后台 Worker** 的人机协作系统。
+
+## 为什么是本地优先
+
+视频素材体积大、隐私敏感，频繁上传云端也会拉长每次编辑的反馈时间。Rushes 把工作空间、素材对象、SQLite 数据库、时间线、预览渲染和最终导出都留在用户设备上；外部模型只接收当前任务所需的最小证据。
+
+- 本地媒体通过 Range / HEAD 端点按需播放，不进入前端 bundle，也不会整段塞进 Agent 上下文。
+- 镜头、ASR 逐句、气口和拍点先被结构化，再以稳定 ID 供模型检索和引用。
+- 每次时间线修改都产生新版本，当前版本可以检查、追踪和 Rewind。
+- 所有模型和后台任务结果都要回到本地状态机，Agent 的一句「完成了」不等于真正完成。
+
+## 从一句话到成片的剪辑闭环
+
+用户可以直接表达「删掉重复的这句话」「去掉太长的气口」「这里盖一段相关 B-roll」或「按鼓点重排这些镜头」。系统把这类意图放进同一条可审计主线。
+
+### 1. 导入并理解本地素材
+
+API 先登记素材和 ingest job。Worker 以 claim / lease / heartbeat 协议生成媒体 probe、缩略图和代理文件，再建立后续剪辑需要的结构化证据：
+
+- 口播素材通过 SRT 或 ASR 建立逐句、逐词和气口索引。
+- 普通视频按镜头建立语义描述与精确源帧范围。
+- 音频分析产出 BPM 与拍点，供卡点剪辑使用。
+- 重复分析按素材 hash、参数和 prompt 版本复用，不重复消耗模型调用。
+
+完整转写和逐镜头细节不会常驻每轮 Context。Agent 只看到精简的素材目录，并在真正需要时通过 `speech.search`、`shot.search` 或 `shot.deep_search` 读取证据。
+
+### 2. Agent 提交原子时间线编辑
+
+Eino ReAct Agent 不接触文件路径、FFmpeg 命令或任意时间线 JSON。通用写入只保留四个动作：
+
+- `timeline.insert`：插入一段素材、BGM 或 SFX。
+- `timeline.delete`：删除指定时间线对象或区间。
+- `timeline.update`：修改位置、源区间、增益等已有属性。
+- `timeline.split`：在合法帧位置拆分片段。
+
+每次调用只提交一个操作，并独立生成一个可回退的 `timeline_id`。素材 ID、镜头 ID、源帧范围和版本不匹配时会返回稳定错误；系统不会猜测模型本来想修改哪个新目标。
+
+### 3. Stop Gate、预览与质量检查
+
+原子修改成功只代表「这一步写入成功」，不代表整条时间线已经可以交付。Agent 准备结束编辑时，Harness 才对最新、精确的 `timeline_id` 运行一次完整 Stop Gate：
+
+- 时间线仍有结构问题时，最多回灌 3 项可行动问题，让 Agent 有界修复。
+- 检查通过且任务需要画面或声音验收时，才生成该版本的预览。
+- Preview QA 并行检查解码、黑帧、静帧、静音和响度，并按需附加视觉 advisory。
+
+最终导出不属于模型工具。用户在界面中确认效果、选择画幅并触发导出后，API 才把当前时间线和版本固定到持久任务，生成最终 MP4。
+
+## Agent 能力如何被收紧
+
+Rushes 当前的 Model Action Catalog 包含 13 个动作：
+
+| 能力边界 | Model Action |
+| --- | --- |
+| 素材证据 | `shot.search` · `shot.deep_search` · `speech.search` |
+| 计划、交互与记忆 | `plan.update` · `interaction.ask_user` · `interaction.confirm_action` · `decision.answer` · `memory.set` · `memory.remove` |
+| 原子时间线编辑 | `timeline.insert` · `timeline.delete` · `timeline.update` · `timeline.split` |
+
+Catalog 只向模型说明有哪些能力，不常驻全部参数 schema。Provider 初始只绑定 `tool.load`；模型必须按当前回合需要精确加载 action，系统再从当前 transcript 的成功回执计算已加载集合。Schema loading 只改变模型能看到的接口，不会绕过 Registry、Precondition、PolicyGate、edit lease、Executor 或 Reducer。
+
+素材基础索引、ASR、拍点分析、完整时间线检查、预览和 Preview QA 属于 Harness Automatic Capabilities，不进入 Catalog，也不能由模型伪造执行结果。长期记忆删除等破坏性动作需要确认；普通时间线编辑保持可回退。
+
+## 上下文与状态
+
+Rushes 不把聊天记录当作项目事实。每轮执行前，`ContextBuilder` 都会从 SQLite 重建带稳定 section ID 的 `WorldState`，其中包含当前素材目录、时间线、任务和交付状态。
+
+- 首轮保存完整 WorldState，后续只注入 RFC 7396 Merge Patch。
+- UI 消息、工具折叠记录和模型窗口分开持久化，旧回复不能覆盖最新客观状态。
+- 历史超过预算时，旧消息被结构化交接摘要替换；尚未执行的排队消息不会提前泄漏进本轮。
+- 同一 draft 的 turn 由 `TurnQueue` 保序，不同 draft 可以并行。
+- domain SSE 与 turn-stream 分别承载状态失效和 Agent 流式过程，断线后可以重放当前回合快照。
+
+## 本地确定性内核
+
+模型负责开放的创作判断，确定性系统负责执行、安全和证据链。
+
+### Reducer：唯一业务写路径
+
+所有业务状态只能通过 `reducer.Apply` 写入。`strict` 事件用 `state_version` 做乐观锁；`merge` 事件用稳定 merge key 去重。事件日志、物化表和工具 ResultRows 在同一个 `BEGIN IMMEDIATE` 事务提交，避免「事件成功、读模型缺失」的半状态。
+
+### SQLite Worker：可恢复的后台任务
+
+SQLite 运行在 WAL 模式。任务由条件 `UPDATE` 原子 claim，`worker_id + heartbeat_at` 构成租约；超时任务可以回收，失败按指数退避，`(kind, idempotency_key)` 保证重复入队安全。Job 终态只能由 Worker 经 Reducer 写回，API 和 Agent 只负责登记任务。
+
+### FFmpeg：可取消、可观测的媒体执行
+
+媒体命令从统一执行层启动。FFmpeg 运行在独立进程组，取消时先向整个进程组发送 SIGINT，让 MP4 有机会完成 moov 写入；进度读取 `-progress pipe:1` 的机器可解析字段，不依赖容易漂移的 stderr 文案。预览同时固化宽高、FPS、时长和对应时间线快照，避免后续拿新状态误判旧成片。
+
+## 工程架构
+
+- **React 19 + Vite 7**：围绕素材、对话、时间线、预览和导出组织的本地 Web 编辑器。
+- **Go 1.26 + chi**：REST、OpenAPI、鉴权、domain SSE、turn-stream 和本地媒体服务。
+- **CloudWeGo Eino**：ReAct Agent、流式模型调用和渐进工具 schema 绑定。
+- **modernc SQLite**：事件日志、物化状态、任务、上下文 checkpoint 和媒体证据。
+- **Go Worker + FFmpeg / FFprobe / aubio**：素材理解、代理文件、音频分析、预览、质检和导出。
+
+```text
+go/
+  cmd/api/            API 进程入口
+  cmd/worker/         Worker 进程入口
+  internal/
+    contracts/        事件注册、版本模式与 SSE 路由
+    storage/          SQLite、迁移、读模型与对象路径
+    reducer/          校验、乐观锁、幂等与同事务物化
+    agent/            Eino ReAct、Context、TurnQueue 与 Stop Gate
+    agentexec/         Agent 统一执行入口
+    tools/             Catalog、PolicyGate、Precondition 与工具实现
+    providers/         DashScope Qwen / Volcengine Ark 适配
+    understanding/     镜头、ASR、拍点与证据索引
+    timeline/          帧级时间线编译与校验
+    media/             FFmpeg 执行、渲染与质量检查
+    worker/            job claim、lease、heartbeat、retry
+    api/               chi、OpenAPI、鉴权、SSE 与媒体端点
+apps/web/              React / Vite 前端
+e2e/                   直接指向 Go 后端的 Playwright 主线
+```
+
+更完整的运行时、不变量、Stop Gate 和上下文设计见 [`docs/architecture.md`](docs/architecture.md)。依赖方向由 `go/.golangci.yml` 的 depguard 固化，违反分层会在 CI 直接失败。
+
+## 本地启动
+
+### 前置依赖
+
+- Go 1.26
+- Node.js 24
+- ffmpeg / ffprobe
+- aubio
+- pnpm 10.13.1（仓库命令会通过 `npx` 使用固定版本）
+
+macOS 可以直接安装并启动：
 
 ```bash
 brew install go ffmpeg aubio node
@@ -14,9 +159,24 @@ make install-web
 make dev
 ```
 
-`make dev` 会构建并拉起 Go API、Go worker 和 Vite。首次启动会生成强随机的本地访问 token，以 `600` 权限写入已被 Git 忽略的根目录 `.env`；浏览器通过一次带 `#t=` 的启动 URL 授权后会持久保存，以后直接打开普通 Web 地址即可。端口默认是 API `8010`、Web `8011`，可用 `RUSHES_API_PORT` / `RUSHES_WEB_PORT` 覆盖。
+`make dev` 会构建并拉起 Go API、Go Worker 和 Vite。默认地址：
 
-真实模型可在仓库根目录 `.env` 配置；显式 `export` 的变量优先于 `.env`：
+| 服务 | 地址 |
+| --- | --- |
+| Web | `http://127.0.0.1:8011` |
+| API | `http://127.0.0.1:8010` |
+| API metrics | `http://127.0.0.1:8010/debug/metrics` |
+| Worker metrics | `http://127.0.0.1:8012/debug/metrics` |
+
+首次启动会生成强随机的本地访问 token，以 `600` 权限写入已被 Git 忽略的根目录 `.env`，并输出一次带 `#t=` 的授权 URL。浏览器保存授权后即可使用普通 Web 地址。工作空间默认位于 `.rushes/`；端口和路径可通过 `RUSHES_API_PORT`、`RUSHES_WEB_PORT`、`RUSHES_WORKER_METRICS_PORT`、`RUSHES_WORKSPACE_PATH` 覆盖。
+
+## 模型配置
+
+根目录 `.env` 是本地开发和手工运行的统一配置源；已显式 `export` 的同名变量优先。
+
+### DashScope
+
+默认聊天与视觉 Provider 是 DashScope：
 
 ```dotenv
 RUSHES_DASHSCOPE_API_KEY=sk-...
@@ -25,143 +185,37 @@ RUSHES_QWEN_VISION_MODEL=qwen3.7-plus
 RUSHES_DASHSCOPE_ASR_MODEL=fun-asr-flash-2026-06-15
 ```
 
-`RUSHES_DASHSCOPE_ASR_MODEL` 默认即为 `fun-asr-flash-2026-06-15`。该模型使用
-DashScope `multimodal-generation` 接口；如果需要工作空间专属域名，可把完整接口地址写入
-`RUSHES_DASHSCOPE_ASR_BASE_URL`。旧的 `RUSHES_QWEN_ASR_MODEL` 仍作为兼容回退读取。
+没有模型密钥时，本地导入、SQLite、Worker、时间线、渲染和 UI 仍可运行；聊天会明确进入无模型降级路径。
 
-没有模型密钥时，本地导入、SQLite、worker、时间线、渲染和 UI 仍可演示，聊天会明确进入无模型降级路径。
+### 火山方舟 Ark
 
-### 聊天/视觉厂商开关（DashScope / 火山方舟）
-
-`RUSHES_CHAT_PROVIDER` 选择聊天与视觉两档模型的厂商，默认 `dashscope`；不设置该变量时行为与之前完全一致。切到火山方舟（Ark）时改为 `ark`，并补充下列变量：
+聊天与视觉可以人工切换到 Ark：
 
 ```dotenv
 RUSHES_CHAT_PROVIDER=ark
-RUSHES_ARK_API_KEY=...                # 或用 AK/SK：RUSHES_ARK_ACCESS_KEY / RUSHES_ARK_SECRET_KEY
-RUSHES_ARK_CHAT_MODEL=...            # 方舟 Model ID 或 ep-* 推理接入点 ID
-RUSHES_ARK_VISION_MODEL=...          # 视觉档 Model ID / 接入点 ID
-# 可选：RUSHES_ARK_BASE_URL / RUSHES_ARK_REGION
+RUSHES_ARK_API_KEY=...
+RUSHES_ARK_CHAT_MODEL=...
+RUSHES_ARK_VISION_MODEL=...
 ```
 
-选择 `ark` 即人工决策：必须提供 API Key（或 AK/SK）与聊天/视觉模型 ID，否则 API 与 worker 在启动期直接报错，不会静默降级；`RUSHES_CHAT_PROVIDER` 只接受 `dashscope` 或 `ark`，非法值同样在启动期报错。此开关只切换聊天/视觉两档；语音识别（ASR）仍固定走 DashScope，独立读取 `RUSHES_DASHSCOPE_API_KEY`。两家模型行为差异较大，切换是人工决策，系统不做运行时自动 failover。
+也可以用 `RUSHES_ARK_ACCESS_KEY` / `RUSHES_ARK_SECRET_KEY` 替代 API Key。选择 `ark` 后必须提供聊天和视觉模型 ID，否则 API 与 Worker 会在启动期显式失败。这个开关不影响 ASR；语音识别仍使用 DashScope。系统不会在两家 Provider 之间静默自动 failover。
 
-## 架构
-
-```text
-React / Vite
-   │ REST + domain SSE + turn-stream
-   ▼
-chi API ───────────────► Eino ReAct Agent ─────► Catalog + tool.load + 13 个 Action
-   │                         │                         │
-   │                         └── TurnQueue / Hub ─────┘
-   │
-   ├──► Reducer（唯一业务写路径）──► SQLite WAL / event_log / 物化表
-   │                                      ▲
-   └──► media Range/HEAD                   │ JobSucceeded / JobFailed
-                                          │
-                              Go worker ───┘
-                              claim / lease / ffmpeg
-```
-
-目录职责：
-
-- `go/internal/contracts`：26 个核心与前端生命周期事件、strict/merge 版本模式与 SSE 路由。
-- `go/internal/storage`：纯 Go SQLite、迁移、读模型和对象路径。
-- `go/internal/reducer`：事件校验、乐观锁、幂等、物化与侧行同事务提交。
-- `go/internal/agent` / `tools` / `providers`：Eino ReAct、TurnQueue、流式协议、Qwen/Ark 适配。
-- `go/internal/worker` / `media` / `timeline`：任务租约、ffmpeg 进程、帧级时间线和渲染。
-- `go/internal/api`：chi、鉴权、OpenAPI server、三条 SSE、Range/HEAD 媒体端点。
-- `apps/web` 与 `e2e`：React 前端和直接指向 Go 后端的 Playwright 主线。
-
-更完整的运行时与不变量说明见 [`docs/architecture.md`](docs/architecture.md)。
-
-## 五个工程设计锚点
-
-### 1. 事件溯源单写路径：乐观锁与幂等并存
-
-所有业务状态只能通过 Reducer 写入。`strict` 事件先校验草稿 `state_version`，提交时再次 CAS；并发编辑冲突返回 `version_conflict`，不会覆盖新状态。`merge` 事件按稳定 merge key 在 `event_log` 去重，worker 重试不会生成重复结果。事件、物化表和 message/material summary 等侧行在同一个 `BEGIN IMMEDIATE` 事务提交，避免“事件成功、读模型缺失”的半状态。
-
-### 2. SQLite 原子 claim 与心跳租约
-
-worker 使用单写连接、WAL、busy timeout 与 `_txlock=immediate`。任务认领由一条条件 `UPDATE` 完成，不依赖进程内锁；`worker_id + heartbeat_at` 构成租约，启动时回收超过 60 秒的 running job。失败按 `min(60, 2^(attempt-1))` 秒退避，`(kind, idempotency_key)` 保证重复入队安全。
-
-### 3. Eino ReAct 与自研 turn-stream
-
-Agent 使用 `flow/agent/react` 和 `utils.InferTool`。每次 provider 调用常驻一份不含参数 schema 的 Model Action Catalog；初始只绑定 `tool.load`，后续仅根据当前 transcript 中成功的加载回执累加绑定完整 action schema，不读用户文本、WorldState 或阶段猜测工具面。注册期检查 PolicyGate 禁止字段，执行前再验证 artifact precondition；`rejected` 表示未执行，`failed` 表示已进入执行后失败。长期记忆写入与删除分别由可逆的 `memory.set` 和破坏性的 `memory.remove` 承担，只有删除进入确认流程。HTTP 消息端点只负责 202 入队；每个草稿由 TurnQueue 保序、不同草稿并行。
-
-### 4. 自定义 Transport 解决真实网络问题
-
-Qwen 与 Ark 都注入同一个 `http.Client`：`DialContext` 固定 `tcp4`，`Proxy` 显式为 nil，超时统一放在 client。这样避开本机 IPv6 到国内模型端点的 TLS reset，也不会意外继承系统代理。聊天与视觉两档模型分别使用 120/180 秒超时。
-
-### 5. ffmpeg 进程组、取消与机器可读进度
-
-所有媒体任务从统一执行层启动。ffmpeg 运行在独立进程组，取消时向整个进程组发 SIGINT，让 MP4 有机会写完 moov；`WaitDelay` 防止子孙进程握住管道导致永久等待。进度来自 `-progress pipe:1` 的 `out_time_us/progress`，不解析易漂移的 stderr 文案。预览还保存渲染时宽高、FPS、时长快照，后续自检不会拿新时间线误判旧成片。
-
-## 开发与验收
+## 开发与验证
 
 ```bash
-make contracts   # OpenAPI/SSE 契约零漂移
-make test        # Go 全量 -race（含 macOS/Linux 语义）
-make coverage    # 手写 Go 核心总覆盖率 >= 90%
-make lint        # go vet + golangci-lint/depguard
-make web         # TypeScript + Vitest + production build
-make e2e         # Go API/worker 主线 Playwright
+make contracts   # OpenAPI 与 SSE golden 契约零漂移
+make test        # Go 全量 -race
+make coverage    # 手写 Go 核心覆盖率 >= 90%
+make lint        # go vet + golangci-lint / depguard
+make web         # TypeScript + Vitest + production build + bundle budget
+make e2e         # Go E2E scaffold + Playwright 主线
+make check       # 依次运行以上全部门禁
 ```
 
-真实 provider spike 默认跳过；提供密钥后可强制执行：
+真实 Provider 测试带 `integration` build tag，默认跳过。只有已经配置真实密钥并明确要验证模型链路时，才使用 `RUSHES_REQUIRE_LIVE_MODELS=1` 强制运行。
 
-```bash
-cd go
-RUSHES_REQUIRE_LIVE_MODELS=1 \
-RUSHES_DASHSCOPE_API_KEY=... \
-RUSHES_ARK_API_KEY=... \
-RUSHES_ARK_MODEL=doubao-seed-2-0-lite-260215 \
-go test -tags=integration ./spikes -run 'TestQwen|TestArk' -v
-```
+## 进一步了解
 
-`RUSHES_ARK_MODEL` 接受方舟 Model ID 或 `ep-*` 推理接入点 ID；对应模型服务必须已在方舟控制台开通。
-
-CI 在 Ubuntu 与 macOS 上执行 Go `-race`，并运行契约对拍、90% 覆盖率、golangci-lint、govulncheck、前端三连和 Playwright。
-
-### 原子时间线编辑
-
-模型侧通用时间线写入只暴露 `timeline.insert`、`timeline.delete`、`timeline.update` 与 `timeline.split`。每次调用只能提交一个 Catalog op，并独立产生一个可 Rewind 的 timeline version；同一 draft 的多个写调用按模型顺序串行，不同 draft 可并行。素材类型、主视频原声联动和生成 ID 由服务端派生，不进入模型 schema。成功结果包含 `previous_timeline_id`、`timeline_id`、`applied_operation`、`changed_targets` 与 `validation_summary`；失效的 clip/asset ID 返回 `stale_target`，调用方应先重新读取时间线或素材列表。
-
-编辑器 REST 即使收到多项保存请求，也会按原顺序拆成同一组原子工具调用；每项独立生成版本，后项失败时保留此前已经成功的版本。
-
-初版组装与卡点混剪也使用同一组原子编辑。空时间线先通过 `asset.list_assets` / `shot.search` 取得素材事实，再逐段 `timeline.insert`；卡点流程可并行读取 `audio.analyze_beats` 与镜头检索结果，由模型明确选择切点、镜头顺序和 source range。BGM 作为单独一次 insert 写入 `bgm` 轨，并携带检测所得的完整 `metadata.beat_grid`；可选 SFX 再单独插入和调节增益。领域流程不再拥有绕过这些原子操作的高层写入入口。
-
-中间原子编辑只返回该次操作回执，不重复运行完整验收。模型准备结束编辑/交付回合时，Harness Stop Gate 只对最新精确 `timeline_id` 运行一次 `timeline.check`；阻塞时回灌最多 3 项问题、剩余数与 `result_ref`，通过后再按任务需要由 Harness 运行 `preview.generate` 及并行 Preview QA。模型不能直接调用这些 Harness capability。最终成片同样不属于模型能力：用户在编辑器中显式选择画幅并触发导出，REST API 将当前 `timeline_id` 与版本固定到持久任务。
-
-### 口播工具验收
-
-口播工作流不把完整 ASR 塞进每轮上下文。Harness 在 `speech.search` 前负责复用同名 SRT 或调用 `fun-asr-flash-2026-06-15`，再将句/词时间戳换算为源帧并持久化逐句、气口与稳定 ID；严格只读的 `speech.search` 按台词、稳定 ID 或源帧范围检索。模型结合 WorldState 时间线事实、`speech.search` 与 `shot.search` 证据自主选择保留侧，再用 `timeline.delete`、`timeline.insert`、`timeline.update` 执行；最后由 Stop Gate 统一终验。
-
-真实模型工具路由与练习素材验收默认跳过，显式运行：
-
-```bash
-cd go
-set -a; source ../.env; set +a
-RUSHES_LIVE_TOOL_EVAL=1 RUSHES_TOOL_EVAL_RUNS=5 \
-  ../scripts/run_go_test_exact.sh ./internal/agent TestLiveCatalogToolLoadStability \
-  -timeout=30m
-RUSHES_LIVE_TOOL_EVAL=1 RUSHES_TOOL_EVAL_RUNS=5 \
-  ../scripts/run_go_test_exact.sh ./internal/agent TestLiveToolCallingStability \
-  -timeout=30m
-RUSHES_TALKING_HEAD_EVAL=1 \
-  ../scripts/run_go_test_exact.sh ./internal/agent TestTalkingHeadRealMaterialAcceptance \
-  -timeout=30m
-RUSHES_REAL_DRAFT_TOOL_EVAL=1 \
-RUSHES_REAL_DRAFT_WORKSPACE="$(pwd)/../.e2e-workspace" \
-RUSHES_REAL_DRAFT_ID=draft_30b145179f7c9ee31af443b8 \
-RUSHES_REAL_DRAFT_TOOL_REPORT="$(pwd)/../.artifacts/real-draft-tool-stability.json" \
-  ../scripts/run_go_test_exact.sh ./internal/agent TestRealDraftToolCallingStability \
-  -timeout=45m
-RUSHES_REQUIRE_LIVE_MODELS=1 \
-RUSHES_ASR_LIVE_SOURCE=/absolute/path/to/aroll-without-sidecar.mp4 \
-  ../scripts/run_go_test_exact.sh ./internal/agent \
-  TestSpeechTranscribeThenSearchBuildsRealFunASRTranscript \
-  -tags=integration -timeout=30m
-```
-
-模型工具验收的硬门槛为 99%；真实草稿门禁会用 SQLite `VACUUM INTO` 取得源工作区的一致只读快照，再为每次调用创建隔离副本，源库绝不由 Rushes 写连接打开。它固定覆盖真实镜头检索、BGM 拍点分析、波纹删除后的新版本、视觉裁边时独立音频保持，以及终态检查如实返回内容合同失败；至少 5 类 workflow、100 次单次模型选择，错工具、非法参数、执行失败或后置条件失败都计为失败且不隐藏重试。口播练习素材验收会检查 A/B-roll 角色、逐句索引、气口删除、B-roll 语义检索、时间线不变量与上下文全文隔离；真实 ASR 验收必须使用没有同名 SRT 的口播，覆盖 DashScope 分块转写、空分块容错、SQLite 持久化与重复工具调用成功率。
+- [Rushes 项目复盘：产品边界、完整工作流与工程取舍](https://yoryon.com/projects/rushes/)
+- [核心架构与运行时不变量](docs/architecture.md)
+- [端到端测试说明](e2e/README.md)

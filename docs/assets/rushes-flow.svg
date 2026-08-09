@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Rushes 对话式视频剪辑架构流程图</title>
+  <desc id="desc">用户意图与本地素材证据进入 Eino ReAct Agent，经 Catalog、tool.load 与 PolicyGate 转成原子时间线操作，再由 Reducer、SQLite、FFmpeg 和质量门禁确定性执行。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2f56ad"/>
+    </marker>
+    <marker id="arrow-left" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 10 0 L 0 5 L 10 10 z" fill="#2f56ad"/>
+    </marker>
+    <style>
+      .sans { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; }
+      .mono { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; }
+      .eyebrow { font-size: 17px; letter-spacing: 2.5px; fill: #2f56ad; }
+      .title { font-size: 48px; font-weight: 650; fill: #22211e; }
+      .subtitle { font-size: 20px; fill: #6f6b63; }
+      .lane { font-size: 15px; letter-spacing: 1.8px; fill: #747068; }
+      .step { font-size: 14px; letter-spacing: 1.3px; fill: #2f56ad; }
+      .box-title { font-size: 22px; font-weight: 650; fill: #22211e; }
+      .box-copy { font-size: 15.5px; fill: #5f5b54; }
+      .pill { font-size: 14px; fill: #35322d; }
+      .line { fill: none; stroke: #2f56ad; stroke-width: 3; marker-end: url(#arrow); }
+      .line-left { fill: none; stroke: #2f56ad; stroke-width: 3; marker-end: url(#arrow-left); }
+      .dash { fill: none; stroke: #8d8981; stroke-width: 2; stroke-dasharray: 8 8; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="900" fill="#faf9f6"/>
+  <text x="78" y="74" class="mono eyebrow">LOCAL-FIRST AGENT / VERIFIED EDITING LOOP</text>
+  <text x="78" y="139" class="sans title">Rushes 对话式视频剪辑架构</text>
+  <text x="78" y="181" class="sans subtitle">模型负责受约束的编辑决策；时间线、版本、渲染与质量检查由本地确定性系统兜底</text>
+
+  <rect x="62" y="222" width="1476" height="258" rx="26" fill="#ffffff" stroke="#d8d3c8" stroke-width="2"/>
+  <text x="90" y="256" class="mono lane">SEMANTIC DECISION LANE / 语义决策层</text>
+
+  <g>
+    <rect x="104" y="294" width="246" height="138" rx="18" fill="#f3f1eb" stroke="#dbd6cc"/>
+    <text x="128" y="327" class="mono step">01 / INPUT</text>
+    <text x="128" y="365" class="sans box-title">本地素材 + 用户意图</text>
+    <text x="128" y="397" class="sans box-copy">导入素材 · 自然语言编辑指令</text>
+  </g>
+  <path d="M 352 363 H 402" class="line"/>
+
+  <g>
+    <rect x="404" y="294" width="264" height="138" rx="18" fill="#f3f1eb" stroke="#dbd6cc"/>
+    <text x="428" y="327" class="mono step">02 / EVIDENCE</text>
+    <text x="428" y="365" class="sans box-title">结构化素材证据</text>
+    <text x="428" y="397" class="sans box-copy">ASR 逐句 / 气口 · 镜头理解</text>
+  </g>
+  <path d="M 670 363 H 720" class="line"/>
+
+  <g>
+    <rect x="722" y="276" width="292" height="174" rx="20" fill="#e8edf8" stroke="#2f56ad" stroke-width="2.5"/>
+    <text x="748" y="312" class="mono step">03 / EINO REACT AGENT</text>
+    <text x="748" y="352" class="sans box-title">证据驱动的编辑决策</text>
+    <rect x="748" y="373" width="240" height="49" rx="12" fill="#faf9f6" stroke="#b8c5e5"/>
+    <text x="868" y="404" text-anchor="middle" class="sans pill">Catalog · tool.load · PolicyGate</text>
+  </g>
+  <path d="M 1016 363 H 1066" class="line"/>
+
+  <g>
+    <rect x="1068" y="276" width="414" height="174" rx="20" fill="#f3f1eb" stroke="#dbd6cc"/>
+    <text x="1094" y="312" class="mono step">04 / ATOMIC TIMELINE TOOLS</text>
+    <text x="1094" y="350" class="sans box-title">每次只提交一个可回退操作</text>
+    <rect x="1094" y="374" width="82" height="43" rx="10" fill="#ffffff" stroke="#cfc9bd"/>
+    <rect x="1185" y="374" width="82" height="43" rx="10" fill="#ffffff" stroke="#cfc9bd"/>
+    <rect x="1276" y="374" width="82" height="43" rx="10" fill="#ffffff" stroke="#cfc9bd"/>
+    <rect x="1367" y="374" width="88" height="43" rx="10" fill="#ffffff" stroke="#cfc9bd"/>
+    <text x="1135" y="401" text-anchor="middle" class="mono pill">insert</text>
+    <text x="1226" y="401" text-anchor="middle" class="mono pill">delete</text>
+    <text x="1317" y="401" text-anchor="middle" class="mono pill">update</text>
+    <text x="1411" y="401" text-anchor="middle" class="mono pill">split</text>
+  </g>
+
+  <path d="M 1276 451 V 536" class="line"/>
+
+  <rect x="62" y="526" width="1476" height="272" rx="26" fill="#f4f2ec" stroke="#d8d3c8" stroke-width="2"/>
+  <text x="90" y="562" class="mono lane">DETERMINISTIC LOCAL CORE / 本地确定性执行层</text>
+
+  <g>
+    <rect x="1110" y="600" width="372" height="148" rx="18" fill="#e8edf8" stroke="#2f56ad" stroke-width="2"/>
+    <text x="1136" y="634" class="mono step">05 / SINGLE WRITE PATH</text>
+    <text x="1136" y="672" class="sans box-title">Reducer + SQLite WAL</text>
+    <text x="1136" y="705" class="sans box-copy">事件日志 · 乐观锁 · 幂等 · 物化表</text>
+  </g>
+  <path d="M 1108 674 H 1058" class="line-left"/>
+
+  <g>
+    <rect x="782" y="600" width="274" height="148" rx="18" fill="#ffffff" stroke="#d5d0c6"/>
+    <text x="808" y="634" class="mono step">06 / RENDER</text>
+    <text x="808" y="672" class="sans box-title">Go Worker + FFmpeg</text>
+    <text x="808" y="705" class="sans box-copy">锁定 timeline_id 渲染预览</text>
+  </g>
+  <path d="M 780 674 H 730" class="line-left"/>
+
+  <g>
+    <rect x="448" y="600" width="280" height="148" rx="18" fill="#ffffff" stroke="#d5d0c6"/>
+    <text x="474" y="634" class="mono step">07 / QUALITY GATES</text>
+    <text x="474" y="672" class="sans box-title">机器检查 + 视觉建议</text>
+    <text x="474" y="705" class="sans box-copy">解码 · 黑/静帧 · 静音 · 响度 · 视觉</text>
+  </g>
+  <path d="M 446 674 H 396" class="line-left"/>
+
+  <g>
+    <rect x="118" y="600" width="276" height="148" rx="18" fill="#303d5f" stroke="#303d5f"/>
+    <text x="144" y="634" class="mono" font-size="14" letter-spacing="1.3" fill="#b9c8f0">08 / HUMAN CONFIRM</text>
+    <text x="144" y="672" class="sans" font-size="22" font-weight="650" fill="#ffffff">确认预览 → 最终 MP4</text>
+    <text x="144" y="705" class="sans" font-size="15.5" fill="#dfe6f6">版本不漂移 · 随时 Rewind</text>
+  </g>
+
+  <path d="M 227 600 V 510 Q 227 492 245 492 H 1350" class="dash"/>
+  <text x="455" y="515" class="mono" font-size="14" fill="#77736b">DOMAIN SSE + TURN-STREAM：工具调用、任务进度与断线重放</text>
+</svg>
