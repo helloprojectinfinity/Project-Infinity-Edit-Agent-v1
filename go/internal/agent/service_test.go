@@ -1372,9 +1372,9 @@ func TestFallbackMainlineDecisionReplayStatusAndPreviewInspection(t *testing.T) 
 		t.Fatalf("content=%q err=%v", content, err)
 	}
 	if !strings.Contains(content, "已完成初版时间线") ||
-		!strings.Contains(content, "工作预览通过五项并行信号检查") ||
-		!strings.Contains(content, "只能由你明确触发") ||
-		!strings.Contains(content, "导出视频") {
+		!strings.Contains(content, "工作預覽通過五項並行訊號檢查") ||
+		!strings.Contains(content, "需要由你啟動匯出") ||
+		!strings.Contains(content, "「匯出」") {
 		t.Fatalf("混剪并导出 fallback 未在完成编辑后引导 UI: %q", content)
 	}
 	select {
@@ -1655,8 +1655,8 @@ func TestFallbackAndReplayHelperBranches(t *testing.T) {
 		if exportErr != nil {
 			t.Fatal(exportErr)
 		}
-		if !strings.Contains(exportReply, "只能由你明确触发") ||
-			!strings.Contains(exportReply, "导出视频") {
+		if !strings.Contains(exportReply, "需要由你啟動匯出") ||
+			!strings.Contains(exportReply, "「匯出」") {
 			t.Fatalf("fallback %q reply=%q", content, exportReply)
 		}
 	}
@@ -2010,7 +2010,7 @@ func TestModelFailureStillRepliesAndEndsTurn(t *testing.T) {
 					t.Fatalf("失败回合 message_completed 应带 kind=turn_failure：%#v", event)
 				}
 			case "turn_ended":
-				if event["outcome"] != "failed" || !strings.Contains(completed, "本轮没有完成") {
+				if event["outcome"] != "failed" || !strings.Contains(completed, "本輪未完成") {
 					t.Fatalf("completed=%q event=%#v", completed, event)
 				}
 				// 回合失败终态必须持久化为 role=system, kind=turn_failure 消息，
@@ -2054,7 +2054,7 @@ func TestEmptyModelReplyStillProducesVisibleFailure(t *testing.T) {
 			case "message_completed":
 				completed, _ = event["content"].(string)
 			case "turn_ended":
-				if event["outcome"] != "failed" || !strings.Contains(completed, "本轮没有完成") ||
+				if event["outcome"] != "failed" || !strings.Contains(completed, "本輪未完成") ||
 					!strings.Contains(completed, "模型没有生成最终回复") {
 					t.Fatalf("completed=%q event=%#v", completed, event)
 				}
@@ -2175,7 +2175,7 @@ func TestRepeatedFailedToolLoopStillRepliesAndEndsTurn(t *testing.T) {
 			case "message_completed":
 				completed, _ = event["content"].(string)
 			case "turn_ended":
-				if event["outcome"] != "failed" || !strings.Contains(completed, "本轮没有完成") ||
+				if event["outcome"] != "failed" || !strings.Contains(completed, "本輪未完成") ||
 					!strings.Contains(completed, "exceeds max steps") {
 					t.Fatalf("completed=%q event=%#v", completed, event)
 				}

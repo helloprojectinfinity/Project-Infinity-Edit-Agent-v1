@@ -150,12 +150,12 @@ describe("PreviewPlayer", () => {
     // 总长 10s @30fps → mm:ss:ff = 00:10:00
     expect(screen.getByText("00:10:00")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "前进一帧" }));
+    fireEvent.click(screen.getByRole("button", { name: "前進一幀" }));
 
     await waitFor(() => expect(vidstackMock.get("currentTime")).toBeCloseTo(1 / 30, 4));
     expect(screen.getByText("00:00:01")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "后退一帧" }));
+    fireEvent.click(screen.getByRole("button", { name: "後退一幀" }));
 
     await waitFor(() => expect(vidstackMock.get("currentTime")).toBeCloseTo(0, 4));
     expect(screen.getByText("00:00:00")).toBeTruthy();
@@ -167,7 +167,7 @@ describe("PreviewPlayer", () => {
     fireEvent.click(screen.getByRole("button", { name: "播放" }));
 
     await waitFor(() => expect(vidstackMock.get("playing")).toBe(true));
-    const pauseButton = screen.getByRole("button", { name: "暂停" });
+    const pauseButton = screen.getByRole("button", { name: "暫停" });
 
     fireEvent.click(pauseButton);
     await waitFor(() => expect(vidstackMock.get("paused")).toBe(true));
@@ -177,7 +177,7 @@ describe("PreviewPlayer", () => {
   it("拖动进度条触发受控 seek 并刷新时间码", async () => {
     render(<PreviewPlayer src="/api/media/preview/prev_1" fps={30} />);
 
-    const scrub = screen.getByRole("slider", { name: "播放进度" });
+    const scrub = screen.getByRole("slider", { name: "播放進度" });
     fireEvent.change(scrub, { target: { value: "5" } });
 
     await waitFor(() => expect(vidstackMock.seek).toHaveBeenLastCalledWith(5, expect.anything()));
@@ -188,9 +188,9 @@ describe("PreviewPlayer", () => {
   it("静音按钮切换 muted，音量滑杆改变音量并取消静音", async () => {
     render(<PreviewPlayer src="/api/media/preview/prev_1" fps={30} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "静音" }));
+    fireEvent.click(screen.getByRole("button", { name: "靜音" }));
     await waitFor(() => expect(vidstackMock.toggleMuted).toHaveBeenCalledTimes(1));
-    expect(screen.getByRole("button", { name: "取消静音" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "取消靜音" })).toBeTruthy();
 
     const volume = screen.getByRole("slider", { name: "音量" });
     fireEvent.change(volume, { target: { value: "0.3" } });
@@ -204,13 +204,13 @@ describe("PreviewPlayer", () => {
   it("全屏按钮切换全屏并随状态更新标签", async () => {
     render(<PreviewPlayer src="/api/media/preview/prev_1" fps={30} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "全屏" }));
+    fireEvent.click(screen.getByRole("button", { name: "全螢幕" }));
     await waitFor(() => expect(vidstackMock.toggleFullscreen).toHaveBeenCalledTimes(1));
 
     act(() => {
       vidstackMock.set({ fullscreen: true });
     });
-    expect(screen.getByRole("button", { name: "退出全屏" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "退出全螢幕" })).toBeTruthy();
   });
 
   it("首次进入 playing 状态时只触发一次 onFirstPlay", async () => {

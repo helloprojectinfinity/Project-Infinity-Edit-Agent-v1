@@ -889,10 +889,10 @@ export const TimelineViewer = memo(
         <div
           className="sticky left-0 z-20 shrink-0 border-r border-line bg-panel"
           style={{ width: LABEL_WIDTH, height: svgHeight }}
-          aria-label="轨道控制"
+          aria-label="軌道控制"
         >
           <div className="flex h-7 items-center px-2 text-2xs font-semibold uppercase tracking-wide text-fg-faint">
-            轨道
+            軌道
           </div>
           {tracks.map((track) => (
             <TrackHeader
@@ -907,7 +907,7 @@ export const TimelineViewer = memo(
         <svg
           ref={svgRef}
           role="img"
-          aria-label="时间线轨道图"
+          aria-label="時間線軌道圖"
           width={timelineWidth}
           height={svgHeight}
           className="block shrink-0 select-none touch-none"
@@ -1161,7 +1161,7 @@ export const TimelineViewer = memo(
                                     fillOpacity={downbeat ? 1 : strong ? 0.9 : 0.58}
                                   >
                                     <title>
-                                      {downbeat ? "小节强拍" : strong ? "音乐重拍" : "音乐拍点"} · {formatFrameTime(marker.frame, safeFps)}
+                                      {downbeat ? "小節強拍" : strong ? "音樂重拍" : "音樂拍點"} · {formatFrameTime(marker.frame, safeFps)}
                                     </title>
                                   </path>
                                 </g>
@@ -1307,7 +1307,7 @@ export const TimelineViewer = memo(
                               rx={2}
                               fill="var(--color-focus-ring)"
                               role="slider"
-                              aria-label={`修剪 ${clip.clipId} 入点`}
+                              aria-label={`修剪 ${clip.clipId} 入點`}
                               aria-valuemin={clip.startFrame}
                               aria-valuemax={clip.endFrame - 1}
                               aria-valuenow={clip.startFrame}
@@ -1327,7 +1327,7 @@ export const TimelineViewer = memo(
                               rx={2}
                               fill="var(--color-focus-ring)"
                               role="slider"
-                              aria-label={`修剪 ${clip.clipId} 出点`}
+                              aria-label={`修剪 ${clip.clipId} 出點`}
                               aria-valuemin={clip.startFrame + 1}
                               aria-valuemax={clip.endFrame}
                               aria-valuenow={clip.endFrame}
@@ -1460,7 +1460,7 @@ function TrackHeader({
             className={`grid size-5 place-items-center rounded-sm text-[9px] font-bold ${
               track.solo ? "bg-accent text-white" : "text-fg-faint hover:bg-hover hover:text-fg"
             }`}
-            aria-label={`${trackLabel(track.track_id)}${track.solo ? "取消独奏" : "独奏"}`}
+            aria-label={`${trackLabel(track.track_id)}${track.solo ? "取消獨奏" : "獨奏"}`}
             aria-pressed={track.solo}
             disabled={editing}
             onClick={() => onChange?.(track.track_id, { solo: !track.solo })}
@@ -1473,7 +1473,7 @@ function TrackHeader({
           className={`grid size-5 place-items-center rounded-sm text-[9px] font-bold ${
             track.muted ? "bg-warn text-ink" : "text-fg-faint hover:bg-hover hover:text-fg"
           }`}
-          aria-label={`${trackLabel(track.track_id)}${track.muted ? "取消静音" : "静音"}`}
+          aria-label={`${trackLabel(track.track_id)}${track.muted ? "取消靜音" : "靜音"}`}
           aria-pressed={track.muted}
           disabled={editing || track.track_id === "visual_base"}
           onClick={() => onChange?.(track.track_id, { muted: !track.muted })}
@@ -1485,7 +1485,7 @@ function TrackHeader({
           className={`grid size-5 place-items-center rounded-sm ${
             track.locked ? "bg-active text-fg" : "text-fg-faint hover:bg-hover hover:text-fg"
           }`}
-          aria-label={`${trackLabel(track.track_id)}${track.locked ? "解锁" : "锁定"}`}
+          aria-label={`${trackLabel(track.track_id)}${track.locked ? "解鎖" : "鎖定"}`}
           aria-pressed={track.locked}
           disabled={editing}
           onClick={() => onChange?.(track.track_id, { locked: !track.locked })}
@@ -1494,14 +1494,14 @@ function TrackHeader({
         </button>
       </div>
       {audio ? (
-        <div className="flex h-[18px] items-center gap-1.5" title={`轨道音量 ${gain.toFixed(0)} dB`}>
+        <div className="flex h-[18px] items-center gap-1.5" title={`軌道音量 ${gain.toFixed(0)} dB`}>
           {track.muted ? (
             <VolumeX size={11} className="shrink-0 text-fg-faint" aria-hidden />
           ) : (
             <Volume2 size={11} className="shrink-0 text-fg-faint" aria-hidden />
           )}
           <input
-            aria-label={`${trackLabel(track.track_id)}轨道音量`}
+            aria-label={`${trackLabel(track.track_id)}軌道音量`}
             className="h-1 min-w-0 flex-1 accent-accent"
             type="range"
             min={-60}
@@ -1525,7 +1525,7 @@ function TrackHeader({
       ) : (
         <div className="flex h-[18px] items-center gap-1 text-[9px] text-fg-faint">
           {track.locked ? <Lock size={10} aria-hidden /> : null}
-          {track.muted ? "已静音" : track.locked ? "编辑已锁定" : ""}
+          {track.muted ? "已靜音" : track.locked ? "編輯已鎖定" : ""}
         </div>
       )}
     </div>
@@ -1699,40 +1699,40 @@ function buildSnapCandidates(
   durationFrames: number
 ): SnapCandidate[] {
   const candidates: SnapCandidate[] = [
-    { frame: 0, label: "时间线起点", priority: 0 },
-    { frame: durationFrames, label: "时间线终点", priority: 0 }
+    { frame: 0, label: "時間線起點", priority: 0 },
+    { frame: durationFrames, label: "時間線終點", priority: 0 }
   ];
   if (playheadSec !== null) {
-    candidates.push({ frame: Math.round(playheadSec * fps), label: "播放头", priority: 0 });
+    candidates.push({ frame: Math.round(playheadSec * fps), label: "播放頭", priority: 0 });
   }
   for (const tick of ticks) {
     const frame = Math.round(tick.sec * fps);
     if (frame >= 0 && frame <= durationFrames) {
-      candidates.push({ frame, label: tick.major ? "主刻度" : "辅助刻度", priority: tick.major ? 2 : 3 });
+      candidates.push({ frame, label: tick.major ? "主刻度" : "輔助刻度", priority: tick.major ? 2 : 3 });
     }
   }
   for (const track of tracks) {
     for (const clip of track.clips) {
       for (const frame of clip.downbeatFrames) {
-        candidates.push({ frame, label: "小节强拍", priority: 0 });
+        candidates.push({ frame, label: "小節強拍", priority: 0 });
       }
       for (const frame of clip.strongBeatFrames) {
-        candidates.push({ frame, label: "音乐强拍", priority: 1 });
+        candidates.push({ frame, label: "音樂強拍", priority: 1 });
       }
       for (const frame of clip.beatFrames) {
-        candidates.push({ frame, label: "音乐拍点", priority: 3 });
+        candidates.push({ frame, label: "音樂拍點", priority: 3 });
       }
       candidates.push(
         {
           frame: clip.startFrame,
-          label: "片段入点",
+          label: "片段入點",
           priority: 1,
           clipId: clip.clipId,
           parentBlockId: clip.parentBlockId
         },
         {
           frame: clip.endFrame,
-          label: "片段出点",
+          label: "片段出點",
           priority: 1,
           clipId: clip.clipId,
           parentBlockId: clip.parentBlockId
@@ -2044,12 +2044,12 @@ function trackKind(trackId: string): TrackKind {
 
 function trackLabel(trackId: string): string {
   const labels: Record<string, string> = {
-    visual_base: "主视频",
-    visual_primary: "主视频",
-    visual_overlay: "叠加",
+    visual_base: "主影片",
+    visual_primary: "主影片",
+    visual_overlay: "疊加",
     voiceover: "配音",
-    original_audio: "原声",
-    bgm: "音乐",
+    original_audio: "原聲",
+    bgm: "音樂",
     sfx: "音效",
     subtitles: "字幕"
   };

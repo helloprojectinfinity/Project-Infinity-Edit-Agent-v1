@@ -125,6 +125,15 @@ func (exec *Executor) SetSpeechRecognizer(recognizer contracts.SpeechRecognizer)
 	exec.speechRecognizer = recognizer
 }
 
+// SetVisionModelLabel 透传 Service 的视觉模型标签设置，写入 analyzer，让分析缓存与
+// 降级提示与当前 provider 一致。空字符串时保留旧值，避免误清空。
+func (exec *Executor) SetVisionModelLabel(label string) {
+	if exec.analyzer == nil {
+		return
+	}
+	exec.analyzer = exec.analyzer.WithVisionModelLabel(label)
+}
+
 // SetSameTurnWaitObserver wires the orchestration-owned metrics observer before
 // the executor begins serving tool calls.
 func (exec *Executor) SetSameTurnWaitObserver(observer SameTurnWaitObserver) {

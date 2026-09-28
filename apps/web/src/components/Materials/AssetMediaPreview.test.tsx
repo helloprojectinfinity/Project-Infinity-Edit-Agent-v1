@@ -7,7 +7,7 @@ import { AssetMediaPreview } from "./AssetMediaPreview";
 describe("AssetMediaPreview 原片优先与回落", () => {
   it("视频默认直连原片 source", () => {
     render(<AssetMediaPreview asset={makeAsset({ asset_id: "v", kind: "video" })} />);
-    const video = screen.getByLabelText("v.mp4 视频试看");
+    const video = screen.getByLabelText("v.mp4 影片試看");
     expect(video.getAttribute("src")).toContain("/api/media/v/source");
   });
 
@@ -15,9 +15,9 @@ describe("AssetMediaPreview 原片优先与回落", () => {
     render(
       <AssetMediaPreview asset={makeAsset({ asset_id: "v", kind: "video", proxy_ready: true })} />
     );
-    fireEvent.error(screen.getByLabelText("v.mp4 视频试看"));
+    fireEvent.error(screen.getByLabelText("v.mp4 影片試看"));
     // 回落后重挂的媒体元素改指向 proxy
-    expect(screen.getByLabelText("v.mp4 视频试看").getAttribute("src")).toContain(
+    expect(screen.getByLabelText("v.mp4 影片試看").getAttribute("src")).toContain(
       "/api/media/v/proxy"
     );
   });
@@ -27,7 +27,7 @@ describe("AssetMediaPreview 原片优先与回落", () => {
       <AssetMediaPreview asset={makeAsset({ asset_id: "v", kind: "video", proxy_ready: false })} />,
     );
     fireEvent.error(document.querySelector("video")!);
-    expect(screen.getByText("此素材格式暂不支持预览。")).toBeTruthy();
+    expect(screen.getByText("此素材格式暫不支援預覽。")).toBeTruthy();
   });
 
   it("原片 onError 且代理转码进行中时提示转码中", () => {
@@ -41,8 +41,8 @@ describe("AssetMediaPreview 原片优先与回落", () => {
         })}
       />
     );
-    fireEvent.error(screen.getByLabelText("v.mp4 视频试看"));
-    expect(screen.getByText("转码中，稍候可预览。")).toBeTruthy();
+    fireEvent.error(screen.getByLabelText("v.mp4 影片試看"));
+    expect(screen.getByText("轉碼中，稍候可預覽。")).toBeTruthy();
   });
 
   it("原片先失败后同素材代理就绪时自动恢复到 proxy", () => {
@@ -53,8 +53,8 @@ describe("AssetMediaPreview 原片优先与回落", () => {
       jobs: [{ kind: "proxy", status: "running" }] as MaterialAsset["jobs"],
     });
     const { rerender } = render(<AssetMediaPreview asset={pending} />);
-    fireEvent.error(screen.getByLabelText("v.mp4 视频试看"));
-    expect(screen.getByText("转码中，稍候可预览。")).toBeTruthy();
+    fireEvent.error(screen.getByLabelText("v.mp4 影片試看"));
+    expect(screen.getByText("轉碼中，稍候可預覽。")).toBeTruthy();
 
     rerender(
       <AssetMediaPreview
@@ -66,7 +66,7 @@ describe("AssetMediaPreview 原片优先与回落", () => {
       />,
     );
 
-    expect(screen.getByLabelText("v.mp4 视频试看").getAttribute("src")).toContain(
+    expect(screen.getByLabelText("v.mp4 影片試看").getAttribute("src")).toContain(
       "/api/media/v/proxy",
     );
   });

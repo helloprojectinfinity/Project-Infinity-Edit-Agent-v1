@@ -111,7 +111,7 @@ func (analyzer *Analyzer) analyzeVideo(
 		Model:          "deterministic-local",
 		AnalysisMethod: "ffmpeg-scdet+analysis-windows",
 	}
-	progress("scene_detect：正在扫描候选切镜")
+	progress("scene_detect：正在掃描候選切鏡")
 	detection, detectErr := media.DetectSceneCandidates(ctx, source, media.SceneDetectionOptions{
 		Threshold: understandingSceneThreshold,
 		Timeout:   sceneDetectionTimeout(durationSec),
@@ -130,7 +130,7 @@ func (analyzer *Analyzer) analyzeVideo(
 
 	var boundaries []videoBoundary
 	if analyzer.vision != nil && len(candidates) > 0 {
-		progress("scene_verify：正在让 VLM 区分真切镜、闪光与运镜")
+		progress("scene_verify：正在讓 VLM 區分真切鏡、閃光與運鏡")
 		verified, verifyErr := analyzer.verifySceneCandidates(
 			ctx, paths, source, durationSec, candidates, options.Focus,
 		)
@@ -147,7 +147,7 @@ func (analyzer *Analyzer) analyzeVideo(
 					result.VerifiedCuts++
 				}
 			}
-			result.AnalysisMethod += "+qwen-vlm-boundary-verification"
+			result.AnalysisMethod += "+" + analyzer.visionModelLabel() + "-boundary-verification"
 		}
 	} else {
 		boundaries = unverifiedBoundaries(candidates)
@@ -158,7 +158,7 @@ func (analyzer *Analyzer) analyzeVideo(
 
 	spans := buildVideoSpans(durationSec, boundaries, options)
 	result.Segments = segmentsFromSpans(spans)
-	progress("view_frames：正在按切镜与长镜头窗口抽取代表帧")
+	progress("view_frames：正在按切鏡與長鏡頭區間抽取代表幀")
 	samples, extractDegraded, extractErr := extractSegmentFrames(ctx, paths, source, spans, options)
 	if extractErr != nil {
 		return videoAnalysisResult{}, extractErr
@@ -173,7 +173,7 @@ func (analyzer *Analyzer) analyzeVideo(
 		return result, nil
 	}
 
-	progress("view_frames：正在调用 VLM 生成逐镜头摘要")
+	progress("view_frames：正在調用 VLM 生成逐鏡頭摘要")
 	description, describeErr := analyzer.describeSegmentFrames(ctx, samples, options.Focus)
 	if describeErr != nil {
 		if ctxErr := ctx.Err(); ctxErr != nil {
@@ -185,7 +185,7 @@ func (analyzer *Analyzer) analyzeVideo(
 		return result, nil
 	}
 	applySegmentDescriptions(&result, description)
-	result.Model = "qwen-vlm"
+	result.Model = analyzer.visionModelLabel()
 	return result, nil
 }
 
@@ -731,6 +731,7 @@ func (analyzer *Analyzer) describeSegmentFrameBatch(
 	focus string,
 ) (string, error) {
 	prompt := `你正在为视频剪辑 Agent 建立可检索的逐镜头语义索引。后续每张图都附带 segment id 和确切源时间。
+所有新生成的自然語言描述、名稱及標籤使用香港繁體中文；JSON 欄位、枚舉值、segment id 和引用畫面文字保持原樣。
 只描述画面可见事实，但要尽量具体：主体身份或外观、场景、正在发生的动作、景别、构图、光线与色调、情绪氛围，以及适合怎样剪辑。description 必须是一句信息密集的中文检索文本，避免“画面很好看”之类空泛评价。一个 segment 有首/中/尾多帧时，可依据帧间构图变化描述段内动作趋势、推近、拉远或横移方向；只有单帧时不要猜测运动。edit_hints 写可执行用途，例如“适合高潮强拍切入”“适合作为环境建立镜头”。
 semantic_name 是用户和 Agent 共同引用该镜头的短名称：使用 4 到 18 个中文字符，优先“场景/主体 + 动作或显著视觉特征”，例如“洞穴远望火把舞者”“日落岩石海滩全景”；不要出现“画面”“镜头”“素材”、编号、文件名、标点或剪辑建议。同一批相似镜头应加入可见差异，避免重名。
 同时判断整段素材在口播工作流中的客观角色：人物直接面对镜头讲解、采访或连续表达为 a_roll；产品展示、操作演示、环境、细节、对比等用于覆盖讲述内容的画面为 b_roll。只依据可见证据，无法判断时返回空字符串。

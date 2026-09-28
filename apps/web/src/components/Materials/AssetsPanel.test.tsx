@@ -38,8 +38,8 @@ describe("AssetsPanel 统一导入入口", () => {
     });
     renderPanel([], {}, fetchMock);
 
-    const importButton = await screen.findByRole("button", { name: "导入素材" });
-    expect(screen.queryByRole("button", { name: "导入文件夹" })).toBeNull();
+    const importButton = await screen.findByRole("button", { name: "匯入素材" });
+    expect(screen.queryByRole("button", { name: "匯入資料夾" })).toBeNull();
     fireEvent.click(importButton);
 
     await waitFor(() => {
@@ -80,23 +80,23 @@ describe("AssetsPanel 统一导入入口", () => {
     });
     renderPanel([], {}, fetchMock);
 
-    const importButton = await screen.findByRole("button", { name: "导入素材" });
-    const emptyImportButton = await screen.findByRole("button", { name: "从 Finder 导入" });
+    const importButton = await screen.findByRole("button", { name: "匯入素材" });
+    const emptyImportButton = await screen.findByRole("button", { name: "從 Finder 匯入" });
     fireEvent.click(emptyImportButton);
 
-    expect((await screen.findByRole("status")).textContent).toContain("等待 Finder 选择");
+    expect((await screen.findByRole("status")).textContent).toContain("等待 Finder 選擇");
     expect((importButton as HTMLButtonElement).disabled).toBe(true);
     expect((emptyImportButton as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(emptyImportButton);
     expect(pickerCalls).toBe(1);
 
-    fireEvent.click(screen.getByRole("button", { name: "取消素材选择" }));
+    fireEvent.click(screen.getByRole("button", { name: "取消素材選擇" }));
 
-    await waitFor(() => expect(screen.queryByText("等待 Finder 选择")).toBeNull());
+    await waitFor(() => expect(screen.queryByText("等待 Finder 選擇")).toBeNull());
     expect(aborted).toBe(true);
     expect((importButton as HTMLButtonElement).disabled).toBe(false);
     expect((emptyImportButton as HTMLButtonElement).disabled).toBe(false);
-    expect(screen.queryByText("导入失败，请重试。")).toBeNull();
+    expect(screen.queryByText("匯入失敗，請重試。")).toBeNull();
   });
 
   it("系统选择框不可用时自动打开支持文件和文件夹的应用内选择器", async () => {
@@ -115,10 +115,10 @@ describe("AssetsPanel 统一导入入口", () => {
     });
     renderPanel([], {}, fetchMock);
 
-    fireEvent.click(await screen.findByRole("button", { name: "导入素材" }));
+    fireEvent.click(await screen.findByRole("button", { name: "匯入素材" }));
 
-    expect(await screen.findByText("在应用中选择素材")).toBeTruthy();
-    expect(screen.getByText("选择一个服务器允许访问的根目录")).toBeTruthy();
+    expect(await screen.findByText("在應用中選擇素材")).toBeTruthy();
+    expect(screen.getByText("選擇一個伺服器允許存取的根目錄")).toBeTruthy();
   });
 });
 
@@ -136,8 +136,8 @@ describe("AssetsPanel 导入状态就地化", () => {
       })
     ]);
 
-    expect(await screen.findByLabelText("视频处理中")).toBeTruthy();
-    expect(screen.getByLabelText("转码与索引处理中")).toBeTruthy();
+    expect(await screen.findByLabelText("影片處理中")).toBeTruthy();
+    expect(screen.getByLabelText("轉碼與索引處理中")).toBeTruthy();
     // 占位态下没有真实缩略图
     expect(screen.queryByAltText("a.mp4 缩略图")).toBeNull();
   });
@@ -154,8 +154,8 @@ describe("AssetsPanel 导入状态就地化", () => {
       })
     ]);
 
-    expect(await screen.findByAltText("b.mp4 缩略图")).toBeTruthy();
-    expect(screen.queryByLabelText("转码与索引处理中")).toBeNull();
+    expect(await screen.findByAltText("b.mp4 縮圖")).toBeTruthy();
+    expect(screen.queryByLabelText("轉碼與索引處理中")).toBeNull();
   });
 
   it("理解状态点：未理解不渲染，理解中/已理解才渲染", async () => {
@@ -166,10 +166,10 @@ describe("AssetsPanel 导入状态就地化", () => {
     ]);
 
     // 三条素材里只有「理解中/已理解」两条渲染状态点，「未理解」不渲染
-    await screen.findByLabelText("理解状态：已理解");
-    expect(screen.getAllByLabelText(/^理解状态：/)).toHaveLength(2);
-    expect(screen.getByLabelText("理解状态：理解中")).toBeTruthy();
-    expect(screen.queryByLabelText("理解状态：未理解")).toBeNull();
+    await screen.findByLabelText("理解狀態：已理解");
+    expect(screen.getAllByLabelText(/^理解狀態：/)).toHaveLength(2);
+    expect(screen.getByLabelText("理解狀態：理解中")).toBeTruthy();
+    expect(screen.queryByLabelText("理解狀態：未理解")).toBeNull();
   });
 });
 
@@ -198,7 +198,7 @@ describe("AssetsPanel 单击试看 / 右键摘要", () => {
 
     // 原生 <button> 本就键盘可达（Enter/Space 由浏览器激活）；缺的是显性可访问名——
     // 用 role+name 定位即验证读屏/键盘用户能唯一命中主点击面，且区别于 ⋯ 的「更多操作」。
-    const tile = await screen.findByRole("button", { name: "试看 clip.mp4" });
+    const tile = await screen.findByRole("button", { name: "試看 clip.mp4" });
     expect(screen.getByRole("button", { name: "素材 clip.mp4 更多操作" })).toBeTruthy();
 
     fireEvent.click(tile);
@@ -220,13 +220,13 @@ describe("MaterialSummaryPanel 理解语义澄清", () => {
   it("未理解时提示基础镜头索引会由导入流程自动排队", () => {
     renderSummary(makeAsset({ understanding_status: "none" }));
 
-    expect(screen.getByText(/基础镜头索引会在导入完成后自动排队/)).toBeTruthy();
+    expect(screen.getByText(/基礎鏡頭索引會在匯入完成後自動排隊/)).toBeTruthy();
   });
 
   it("理解中时提示后台索引不阻塞剪辑", () => {
     renderSummary(makeAsset({ understanding_status: "running" }));
 
-    expect(screen.getByText(/正在后台建立基础镜头索引；不阻塞继续剪辑/)).toBeTruthy();
+    expect(screen.getByText(/正在背景建立基礎鏡頭索引；不阻塞繼續剪接/)).toBeTruthy();
   });
 });
 

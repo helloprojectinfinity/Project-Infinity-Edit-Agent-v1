@@ -85,49 +85,49 @@ export function WorkspaceSettingsDialog({
           className="rx-content fixed left-1/2 top-1/2 z-40 max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-raised p-5 shadow-overlay focus:outline-none"
         >
           <div className="flex items-center justify-between">
-            <Dialog.Title className="text-lg font-semibold text-fg">全局设置</Dialog.Title>
+            <Dialog.Title className="text-lg font-semibold text-fg">全域設定</Dialog.Title>
             <Dialog.Close asChild>
               <button
                 className="grid h-7 w-7 place-items-center rounded-md text-fg-muted transition-colors ease-standard hover:bg-hover hover:text-fg"
                 type="button"
-                aria-label="关闭设置"
+                aria-label="關閉設定"
               >
                 <X size={16} strokeWidth={1.75} aria-hidden />
               </button>
             </Dialog.Close>
           </div>
 
-          <Section title="全局默认值">
+          <Section title="全域預設值">
             <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
-              <DefaultRow label="画幅" value="16:9" />
-              <DefaultRow label="帧率" value="30 fps" />
-              <DefaultRow label="质量" value="标准" />
+              <DefaultRow label="畫幅" value="16:9" />
+              <DefaultRow label="幀率" value="30 fps" />
+              <DefaultRow label="品質" value="標準" />
             </dl>
             <p className="mt-2 text-xs text-fg-faint">
-              新建草稿会继承这些默认值；逐草稿改动在对话中告诉代理即可。
+              新建草稿會繼承這些預設值；逐草稿改動在對話中告訴代理即可。
             </p>
           </Section>
 
-          <Section title="成本汇总">
-            <p className="text-sm text-fg-muted">全局成本汇总后续接入。</p>
+          <Section title="成本彙總">
+            <p className="text-sm text-fg-muted">全域成本彙總後續接入。</p>
           </Section>
 
-          <Section title="长期记忆">
+          <Section title="長期記憶">
             <p className="text-xs leading-5 text-fg-faint">
-              代理会在不同草稿间沿用这些稳定偏好。删除会立即清除当前记录；正在进行的回合不受影响。
+              代理會在不同草稿間沿用這些穩定偏好。刪除會立即清除當前記錄；正在進行的回合不受影響。
             </p>
             {memoriesQuery.isPending ? (
-              <p className="mt-3 text-sm text-fg-muted">正在读取长期记忆…</p>
+              <p className="mt-3 text-sm text-fg-muted">正在讀取長期記憶…</p>
             ) : memoriesQuery.isError ? (
               <p className="mt-3 text-sm text-danger" role="alert">
-                长期记忆读取失败，请稍后重试。
+                長期記憶讀取失敗，請稍後重試。
               </p>
             ) : memories.length === 0 ? (
               <p className="mt-3 rounded-md border border-dashed border-line px-3 py-4 text-center text-sm text-fg-muted">
-                还没有长期记忆
+                還沒有長期記憶
               </p>
             ) : (
-              <ul className="mt-3 space-y-2" aria-label="长期记忆列表">
+              <ul className="mt-3 space-y-2" aria-label="長期記憶列表">
                 {memories.map((memory) => (
                   <MemoryRow
                     key={memory.memory_key}
@@ -153,12 +153,12 @@ export function WorkspaceSettingsDialog({
             )}
             {deleteError ? (
               <p className="mt-3 text-sm text-danger" role="alert">
-                删除失败，请重新打开设置确认当前内容。
+                刪除失敗，請重新打開設定確認當前內容。
               </p>
             ) : null}
             {updateMemory.isError ? (
               <p className="mt-3 text-sm text-danger" role="alert">
-                保存失败，请重试或重新打开设置确认当前内容。
+                儲存失敗，請重試或重新打開設定確認當前內容。
               </p>
             ) : null}
             {memories.length > 0 ? (
@@ -208,21 +208,21 @@ function ClearMemoriesDialog({
           type="button"
           disabled={pending}
         >
-          清空全部长期记忆
+          清空全部長期記憶
         </button>
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="rx-overlay fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" />
         <Dialog.Content className="rx-content fixed left-1/2 top-1/2 z-[60] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-raised p-5 shadow-overlay focus:outline-none">
           <Dialog.Title className="text-lg font-semibold text-fg">
-            确认清空全部长期记忆？
+            確認清空全部長期記憶？
           </Dialog.Title>
           <Dialog.Description className="mt-2 text-sm leading-6 text-fg-muted">
-            将删除 {count} 条跨草稿偏好；正在进行的回合不受影响。此操作无法在界面中撤销。
+            將刪除 {count} 條跨草稿偏好；正在進行的回合不受影響。此操作無法在介面中撤銷。
           </Dialog.Description>
           {failed ? (
             <p className="mt-4 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
-              清空失败，请重新打开设置确认当前内容。
+              清空失敗，請重新打開設定確認當前內容。
             </p>
           ) : null}
           <div className="mt-5 flex justify-end gap-2">
@@ -240,7 +240,7 @@ function ClearMemoriesDialog({
               disabled={pending}
               onClick={onConfirm}
             >
-              {pending ? "正在清空" : "确认清空全部长期记忆"}
+              {pending ? "正在清空" : "確認清空全部長期記憶"}
             </button>
           </div>
         </Dialog.Content>
@@ -291,7 +291,7 @@ function MemoryRow({
           <code>{memory.memory_key}</code>
         </div>
         <textarea
-          aria-label={`编辑长期记忆 ${memory.memory_key}`}
+          aria-label={`編輯長期記憶 ${memory.memory_key}`}
           autoFocus
           maxLength={200}
           className="mt-1.5 h-16 w-full resize-none rounded-sm border border-line bg-panel px-2 py-1.5 text-sm leading-5 text-fg outline-none focus:border-accent"
@@ -317,7 +317,7 @@ function MemoryRow({
               void submit();
             }}
           >
-            {saving ? "正在保存" : "保存"}
+            {saving ? "正在儲存" : "儲存"}
           </button>
         </div>
       </li>
@@ -331,7 +331,7 @@ function MemoryRow({
           <span className="rounded bg-hover px-1.5 py-0.5">{memoryKindLabel(memory.kind)}</span>
           <code>{memory.memory_key}</code>
           {memory.manually_revised_at ? (
-            <span className="rounded bg-accent/10 px-1.5 py-0.5 text-accent">手动修订</span>
+            <span className="rounded bg-accent/10 px-1.5 py-0.5 text-accent">手動修訂</span>
           ) : null}
         </div>
         <p className="mt-1 text-sm leading-5 text-fg">{memory.statement}</p>
@@ -343,7 +343,7 @@ function MemoryRow({
         <button
           className="grid h-7 w-7 place-items-center rounded-md text-fg-muted transition-colors hover:bg-hover hover:text-fg disabled:opacity-40"
           type="button"
-          aria-label={`编辑长期记忆 ${memory.memory_key}`}
+          aria-label={`編輯長期記憶 ${memory.memory_key}`}
           disabled={disabled}
           onClick={() => {
             setDraft(memory.statement);
@@ -355,12 +355,12 @@ function MemoryRow({
         <button
           className="grid h-7 w-7 place-items-center rounded-md text-fg-muted transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-40"
           type="button"
-          aria-label={`删除长期记忆 ${memory.memory_key}`}
+          aria-label={`刪除長期記憶 ${memory.memory_key}`}
           disabled={disabled}
           onClick={onDelete}
         >
           <Trash2 size={14} strokeWidth={1.75} aria-hidden />
-          <span className="sr-only">{deleting ? "正在删除" : "删除"}</span>
+          <span className="sr-only">{deleting ? "正在刪除" : "刪除"}</span>
         </button>
       </div>
     </li>
@@ -370,9 +370,9 @@ function MemoryRow({
 function memoryKindLabel(kind: MemoryRecord["kind"]): string {
   switch (kind) {
     case "correction":
-      return "纠正";
+      return "糾正";
     case "habit":
-      return "习惯";
+      return "習慣";
     default:
       return "偏好";
   }

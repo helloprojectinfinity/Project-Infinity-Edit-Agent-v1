@@ -101,12 +101,24 @@ func run() error {
 		if err != nil {
 			return err
 		}
+	case config.ProviderOpenRouter:
+		// OpenRouter 缺密钥或模型时由 NewOpenRouterTiers 在启动期报错，不静默降级。
+		tiers, err = providers.NewOpenRouterTiers(context.Background(), providers.OpenRouterTierConfig{
+			APIKey:      os.Getenv("RUSHES_OPENROUTER_API_KEY"),
+			BaseURL:     os.Getenv("RUSHES_OPENROUTER_BASE_URL"),
+			ChatModel:   os.Getenv("RUSHES_OPENROUTER_CHAT_MODEL"),
+			VisionModel: os.Getenv("RUSHES_OPENROUTER_VISION_MODEL"),
+		})
+		if err != nil {
+			return err
+		}
 	}
 	agentService, err := agent.NewServiceWithModelsForStartup(context.Background(), database, tiers.Chat, tiers.Vision)
 	if err != nil {
 		return err
 	}
 	defer agentService.Close()
+	agentService.SetVisionModelLabel(chatVisionModelLabel(provider))
 	if key := os.Getenv("RUSHES_DASHSCOPE_API_KEY"); key != "" {
 		asrModel := os.Getenv("RUSHES_DASHSCOPE_ASR_MODEL")
 		if asrModel == "" {
@@ -192,4 +204,20 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+// chatVisionModelLabel 把当前 provider 的视觉模型 ID 暴露给 agent 与 executor，用于
+// 分析缓存键与降级提示。换 OpenRouter 等新 provider 时返回填入的模型 ID；dashscope 与
+// ark 沿用 DefaultVisionModel，避免引入空标签。
+func chatVisionModelLabel(provider config.ChatProvider) string {
+	switch provider {
+	case config.ProviderOpenRouter:
+		return firstNonEmpty(
+			os.Getenv("RUSHES_OPENROUTER_VISION_MODEL"),
+			os.Getenv("RUSHES_OPENROUTER_CHAT_MODEL"),
+			providers.DefaultOpenRouterVisionModel,
+		)
+	default:
+		return providers.DefaultVisionModel
+	}
 }

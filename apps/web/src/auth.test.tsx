@@ -15,8 +15,8 @@ describe("auth", () => {
   it("无 token 时展示启动引导页", () => {
     render(<AppRoot />);
 
-    expect(screen.getByText("请从后端启动 URL 打开 Rushes")).toBeTruthy();
-    expect(screen.getByText(/当前页面没有收到启动 token/)).toBeTruthy();
+    expect(screen.getByText("請從後端啟動網址開啟 Rushes")).toBeTruthy();
+    expect(screen.getByText(/目前頁面未收到啟動 token/)).toBeTruthy();
   });
 
   it("启动 URL 中的 token 持久化后移除 hash", () => {

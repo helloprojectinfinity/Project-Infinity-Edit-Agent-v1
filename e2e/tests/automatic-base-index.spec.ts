@@ -35,7 +35,7 @@ test("视频导入后自动建立基础镜头索引，不占 timeline lease 且�
   request
 }) => {
   await page.goto(`/#t=${TOKEN}`);
-  await page.getByRole("button", { name: "开始创作", exact: true }).click();
+  await page.getByRole("button", { name: "開始創作", exact: true }).click();
   await expect(page).toHaveURL(/\/drafts\//);
   const draftId = idFromUrl(page.url());
   const assistantRepliesBefore = assistantReplyIds(
@@ -83,14 +83,14 @@ test("视频导入后自动建立基础镜头索引，不占 timeline lease 且�
   await page.reload();
   await expect(page.getByText("auto-index-a.mp4")).toBeVisible();
   await expect(page.getByText("auto-index-b.mp4")).toBeVisible();
-  await expect(page.getByLabel("理解状态：理解中")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "停止当前任务" })).toHaveCount(0);
+  await expect(page.getByLabel("理解狀態：理解中")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "停止當前任務" })).toHaveCount(0);
   expect(
     assistantReplyIds(await apiGet<MessagesResponse>(request, `/api/drafts/${draftId}/messages?limit=200`))
   ).toEqual(assistantRepliesBefore);
 
-  await page.getByLabel("消息输入").fill("E2E_SHOT_SEARCH");
-  await page.getByRole("button", { name: "发送" }).click();
+  await page.getByLabel("訊息輸入").fill("E2E_SHOT_SEARCH");
+  await page.getByRole("button", { name: "送出訊息" }).click();
   const searchReply = page
     .locator('[data-message-kind="reply"]')
     .filter({ hasText: "E2E_SHOT_SEARCH_OK" });

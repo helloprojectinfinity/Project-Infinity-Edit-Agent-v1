@@ -131,7 +131,7 @@ export function EntityActionDialog({
 
             {naming ? (
               <label className="mt-4 block text-sm font-medium text-fg-muted">
-                名称
+                名稱
                 <input
                   className="mt-2 w-full rounded-md border border-line bg-ink px-3 py-2 text-fg outline-none focus:border-accent"
                   value={name}
@@ -155,13 +155,13 @@ export function EntityActionDialog({
                     setConfirmed(event.target.checked);
                   }}
                 />
-                确认删除这条草稿。后端会走软删除和同一条归约路径。
+                確認刪除這條草稿。後端會走軟刪除和同一條歸約路徑。
               </label>
             ) : null}
 
             {mutation.error ? (
               <p className="mt-4 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
-                操作失败，请检查后端响应。
+                操作失敗，請檢查後端回應。
               </p>
             ) : null}
 
@@ -181,7 +181,7 @@ export function EntityActionDialog({
                 type="submit"
                 disabled={!formReady || mutation.isPending}
               >
-                {mutation.isPending ? "处理中" : "确认"}
+                {mutation.isPending ? "處理中" : "確認"}
               </button>
             </div>
           </form>
@@ -203,9 +203,9 @@ function initialName(kind: EntityDialogState["kind"], draftName?: string): strin
 
 function dialogTitle(kind: EntityDialogState["kind"]): string {
   const titles: Record<EntityDialogState["kind"], string> = {
-    renameDraft: "重命名草稿",
-    copyDraft: "复制草稿",
-    deleteDraft: "删除草稿"
+    renameDraft: "重新命名草稿",
+    copyDraft: "複製草稿",
+    deleteDraft: "刪除草稿"
   };
   return titles[kind];
 }

@@ -14,6 +14,9 @@ func TestResolveChatProviderDefaultsAndArk(t *testing.T) {
 		"  ark  ":   ProviderArk,
 		"ark":       ProviderArk,
 		"ARK":       ProviderArk,
+		"  openrouter  ": ProviderOpenRouter,
+		"openrouter":     ProviderOpenRouter,
+		"OpenRouter":     ProviderOpenRouter,
 	}
 	for raw, want := range cases {
 		got, err := ResolveChatProvider(raw)
@@ -32,7 +35,9 @@ func TestResolveChatProviderRejectsUnknown(t *testing.T) {
 		t.Fatal("非法厂商值应报错")
 	}
 	message := err.Error()
-	for _, must := range []string{EnvChatProvider, string(ProviderDashScope), string(ProviderArk)} {
+	for _, must := range []string{
+		EnvChatProvider, string(ProviderDashScope), string(ProviderArk), string(ProviderOpenRouter),
+	} {
 		if !strings.Contains(message, must) {
 			t.Fatalf("错误信息 %q 缺少 %q", message, must)
 		}

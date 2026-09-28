@@ -78,10 +78,47 @@ type AnalyzeOptions struct {
 
 type Analyzer struct {
 	vision model.ToolCallingChatModel
+	// VisionModelLabel 写入分析缓存与降级提示，用于让旧 Qwen 视觉缓存与新接入的
+	// OpenRouter 视觉模型相互区分，避免换 provider 后误用旧快取。
+	VisionModelLabel string
 }
 
 func NewAnalyzer(vision model.ToolCallingChatModel) *Analyzer {
-	return &Analyzer{vision: vision}
+	return &Analyzer{vision: vision, VisionModelLabel: "qwen-vlm"}
+}
+
+// WithVisionModelLabel 返回新实例并设置 VisionModelLabel，不修改原对象，便于在
+// 启动装配阶段根据当前 provider 提供稳定标签。
+func (analyzer *Analyzer) WithVisionModelLabel(label string) *Analyzer {
+	clone := *analyzer
+	if trimmed := strings.TrimSpace(label); trimmed != "" {
+		clone.VisionModelLabel = trimmed
+	}
+	return &clone
+}
+
+// visionModelLabel 返回当前视觉分析器使用的标签，用于分析缓存键与降级提示。空
+// 字符串时回落到默认的 qwen-vlm，保证旧调用点行为不变。
+func (analyzer *Analyzer) visionModelLabel() string {
+	if analyzer == nil {
+		return "qwen-vlm"
+	}
+	if trimmed := strings.TrimSpace(analyzer.VisionModelLabel); trimmed != "" {
+		return trimmed
+	}
+	return "qwen-vlm"
+}
+
+// VisionModelLabel 返回对外可见的视觉模型标签，便于其他包（如 agentexec）拼接
+// 缓存键、降级标签，避免直接读取未导出的字段。
+func (analyzer *Analyzer) VisionModelLabelOrDefault() string {
+	return analyzer.visionModelLabel()
+}
+
+// DeepShotAnalyzerVersion 基于当前视觉模型标签生成深度镜头分析的版本字串。
+// agentexec 在写入 asset_analyses 时应使用本方法，确保换 provider 后旧快取失配。
+func (analyzer *Analyzer) DeepShotAnalyzerVersion() string {
+	return DeepShotAnalyzerVersionFor(analyzer.visionModelLabel())
 }
 
 func (analyzer *Analyzer) AnalyzeWithOptions(
@@ -111,9 +148,9 @@ func (analyzer *Analyzer) AnalyzeWithOptions(
 		duration = 1
 	}
 	if kind == "audio" {
-		progress("audio_probe：正在识别音频类型与时长")
+		progress("audio_probe：正在識別音訊類型與時長")
 	} else if kind != "video" {
-		progress("view_frames：正在抽取代表帧")
+		progress("view_frames：正在抽取代表幀")
 	}
 	role := semanticRole(kind)
 	overall := fmt.Sprintf("%s 素材，时长约 %.2f 秒。", kindLabel(kind), duration)
@@ -158,7 +195,7 @@ func (analyzer *Analyzer) AnalyzeWithOptions(
 			return Summary{}, frameErr
 		}
 		if analyzer.vision != nil && len(frames) > 0 {
-			progress("view_frames：正在调用 VLM 理解画面")
+			progress("view_frames：正在調用 VLM 理解畫面")
 			description, visionErr := analyzer.describeFrames(ctx, frames, options.Focus)
 			if visionErr != nil {
 				return Summary{}, visionErr
@@ -167,14 +204,14 @@ func (analyzer *Analyzer) AnalyzeWithOptions(
 				overall = description
 				segments[0].Description = description
 			}
-			modelName = "qwen-vlm"
+			modelName = analyzer.visionModelLabel()
 		}
 	}
-	progress("transcribe：一期未配置 ASR，保留降级提示")
-	note := "音频转写不可用；摘要仅基于画面与媒体元数据。"
+	progress("transcribe：素材摘要未執行語音轉寫")
+	note := "素材摘要未執行語音轉寫；摘要僅根據畫面與媒體中繼資料。"
 	degraded := []string{"transcribe_unavailable"}
 	if kind == "audio" {
-		note = "音频角色基于文件名与时长识别；未执行语音转写或音色分类。"
+		note = "音訊角色根據檔名與時長識別；未執行語音轉寫或音色分類。"
 		degraded = []string{"audio_content_analysis_unavailable"}
 	}
 	if kind == "image" || kind == "font" {
@@ -186,7 +223,7 @@ func (analyzer *Analyzer) AnalyzeWithOptions(
 			segments[index].Notes = &note
 		}
 	}
-	progress("emit_summary：正在生成结构化摘要")
+	progress("emit_summary：正在生成結構化摘要")
 	return Summary{
 		AssetID: asset.ID, Version: 2, Focus: stringPointer(options.Focus),
 		SemanticRole: role, Overall: overall,
@@ -269,7 +306,7 @@ func summaryTags(kind, role string) []string {
 }
 
 func (analyzer *Analyzer) describeFrames(ctx context.Context, frames [][]byte, focus string) (string, error) {
-	prompt := "描述这些视频代表帧的主体、动作、场景、镜头质量和可剪辑价值。只返回一段简洁中文。"
+	prompt := "描述這些影片代表幀的主體、動作、場景、鏡頭品質和剪接價值。只回傳一段簡潔的香港繁體中文；引用畫面文字時保留原文。"
 	if focus != "" {
 		prompt += "重点关注：" + focus
 	}

@@ -369,7 +369,7 @@ export const ConsolePanel = forwardRef<ConsolePanelHandle, ConsolePanelProps>(
         setAffectedMemories([]);
         await queryClient.invalidateQueries({ queryKey: ["memories"] });
       },
-      onError: () => setConversationError("撤回记忆失败,请稍后重试。")
+      onError: () => setConversationError("撤回記憶失敗，請稍後重試。")
     });
 
     // 写入回执卡逐条撤回：复用既有单键删除端点，成功后刷新全局设置面板缓存。
@@ -406,7 +406,7 @@ export const ConsolePanel = forwardRef<ConsolePanelHandle, ConsolePanelProps>(
       onSuccess: async () => {
         await queryClient.invalidateQueries({ queryKey: ["memories"] });
       },
-      onError: () => setConversationError("撤回记忆失败，请稍后重试。")
+      onError: () => setConversationError("撤回記憶失敗，請稍後重試。")
     });
     const retractMemoryFromReceipt = useCallback(
       (entry: StreamMemoryEntry) => retractStreamMemory.mutateAsync(entry),
@@ -467,7 +467,7 @@ export const ConsolePanel = forwardRef<ConsolePanelHandle, ConsolePanelProps>(
     const handleClearConversation = useCallback(() => {
       if (
         !window.confirm(
-          "清空当前对话上下文？素材、素材理解、时间线和预览都会保留，新对话会继承这些客观状态。"
+          "清空當前對話上下文？素材、素材理解、時間線和預覽都會保留，新對話會繼承這些客觀狀態。"
         )
       ) {
         return;
@@ -503,12 +503,12 @@ export const ConsolePanel = forwardRef<ConsolePanelHandle, ConsolePanelProps>(
     }, [draft, runtime]);
     const statusLabel = useMemo(() => {
       if (streamState === "open") {
-        return "事件流已连接";
+        return "事件流已連線";
       }
       if (streamState === "closed") {
-        return "事件流重连中";
+        return "事件流重連中";
       }
-      return "事件流连接中";
+      return "事件流連線中";
     }, [streamState]);
 
     // 连接态与回合忙碌态是低频信号（连接开合、回合起止），提回父组件供顶栏连接指示与
@@ -534,19 +534,19 @@ export const ConsolePanel = forwardRef<ConsolePanelHandle, ConsolePanelProps>(
       <aside
         className="flex min-h-0 shrink-0 flex-col bg-panel"
         style={{ width: chatPanelWidth }}
-        aria-label="剪辑对话"
+        aria-label="剪接對話"
       >
         <div className="flex h-8 shrink-0 items-center justify-between border-b border-line px-3">
-          <span className="text-xs font-semibold tracking-wide">AI 剪辑</span>
+          <span className="text-xs font-semibold tracking-wide">AI 剪接</span>
           <div className="flex items-center gap-2">
             <button
               type="button"
               className="inline-flex h-6 items-center gap-1 rounded-sm border border-line px-2 text-2xs text-fg-muted hover:border-line-strong hover:bg-hover hover:text-fg disabled:cursor-not-allowed disabled:border-transparent disabled:text-fg-faint disabled:opacity-35"
-              aria-label="清空对话上下文"
+              aria-label="清空對話上下文"
               title={
                 turnBusy
-                  ? "当前任务结束后可清空聊天"
-                  : "清空聊天记录；保留素材、时间线和预览"
+                  ? "當前任務結束後可清空聊天"
+                  : "清空聊天紀錄；保留素材、時間線和預覽"
               }
               disabled={turnBusy || clearConversation.isPending}
               onClick={handleClearConversation}
@@ -566,7 +566,7 @@ export const ConsolePanel = forwardRef<ConsolePanelHandle, ConsolePanelProps>(
                 }`}
               />
               <span className="sr-only">{statusLabel}</span>
-              {streamState === "open" ? "在线" : "连接中"}
+              {streamState === "open" ? "在線" : "連線中"}
             </span>
           </div>
         </div>
@@ -582,7 +582,7 @@ export const ConsolePanel = forwardRef<ConsolePanelHandle, ConsolePanelProps>(
             className="shrink-0 border-b border-line bg-panel px-3 py-1 text-center text-2xs text-fg-faint"
             role="status"
           >
-            已回退并折叠 {rewoundMessageCount} 条历史消息
+            已回退並摺疊 {rewoundMessageCount} 條歷史訊息
           </div>
         ) : null}
 
@@ -621,7 +621,7 @@ export const ConsolePanel = forwardRef<ConsolePanelHandle, ConsolePanelProps>(
         />
 
         {sideDecisionItem ? (
-          <div className="shrink-0 border-t border-line p-2.5" aria-label="当前确认项">
+          <div className="shrink-0 border-t border-line p-2.5" aria-label="目前確認項目">
             <StructuredInteractionRenderer
               item={sideDecisionItem}
               onAnswerDecision={handleAnswerDecision}
@@ -655,7 +655,7 @@ export const ConsolePanel = forwardRef<ConsolePanelHandle, ConsolePanelProps>(
           ) : null}
           <div className="overflow-hidden rounded-md border border-line-strong bg-raised focus-within:border-accent">
             <textarea
-              aria-label="消息输入"
+              aria-label="訊息輸入"
               className="h-16 w-full resize-none bg-transparent px-3 pt-2.5 text-[13px] leading-5 text-fg outline-none placeholder:text-fg-faint"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
@@ -671,20 +671,20 @@ export const ConsolePanel = forwardRef<ConsolePanelHandle, ConsolePanelProps>(
               }}
               placeholder={
                 runtime.isRunning
-                  ? "描述下一步；发送后会排到当前任务之后…"
-                  : "描述你想怎样剪辑…"
+                  ? "描述下一步；送出後會排到當前任務之後…"
+                  : "描述你想怎樣剪接…"
               }
             />
             <div className="flex items-center justify-between gap-3 border-t border-line px-2 py-1.5">
               <div className="min-w-0 text-2xs text-fg-faint">
                 {runtime.isRunning ? (
                   <span className="block truncate text-accent" role="status" aria-live="polite">
-                    新消息将按发送顺序排队
+                    新訊息會按送出順序排隊
                   </span>
                 ) : null}
                 <span className="block">
-                  <kbd className="font-mono">Enter</kbd> 发送　
-                  <kbd className="font-mono">Shift+Enter</kbd> 换行
+                  <kbd className="font-mono">Enter</kbd> 送出　
+                  <kbd className="font-mono">Shift+Enter</kbd> 換行
                 </span>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
@@ -692,7 +692,7 @@ export const ConsolePanel = forwardRef<ConsolePanelHandle, ConsolePanelProps>(
                   <button
                     className="flex size-7 items-center justify-center rounded-md border border-line-strong bg-panel text-fg-muted transition-[transform,background-color] duration-fast hover:bg-hover hover:text-fg active:translate-y-px disabled:opacity-40"
                     type="button"
-                    aria-label="停止当前任务"
+                    aria-label="停止當前任務"
                     disabled={cancelTurn.isPending}
                     onClick={() => cancelTurn.mutate()}
                   >
@@ -702,11 +702,11 @@ export const ConsolePanel = forwardRef<ConsolePanelHandle, ConsolePanelProps>(
                 <button
                   className="flex size-7 items-center justify-center rounded-md bg-accent text-white transition-[transform,background-color] duration-fast hover:bg-accent-strong active:translate-y-px disabled:opacity-40"
                   type="submit"
-                  aria-label="发送消息"
+                  aria-label="送出訊息"
                   disabled={!runtime.canSubmit || draft.trim().length === 0}
                 >
                   <ArrowUp size={15} strokeWidth={2} aria-hidden />
-                  <span className="sr-only">发送</span>
+                  <span className="sr-only">送出</span>
                 </button>
               </div>
             </div>

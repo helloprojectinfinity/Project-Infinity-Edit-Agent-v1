@@ -44,7 +44,7 @@ describe("timeline patch error details", () => {
     });
 
     expect(timelinePatchErrorMessage(error)).toBe(
-      "Agent 正在编辑，请等待本轮结束后再修改时间线。"
+      "Agent 正在編輯，請等待本輪結束後再修改時間線。"
     );
   });
 });

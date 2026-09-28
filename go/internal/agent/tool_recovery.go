@@ -1766,45 +1766,45 @@ func terminalFailureReply(ctx context.Context, turnErr error) string {
 	if errors.As(turnErr, &guardErr) {
 		switch guardErr.kind {
 		case "tool_policy_unresolved":
-			return "本轮没有完成：工具策略确认尚未解决，系统已拒绝越过确认直接收尾。最后问题：" +
+			return "本輪未完成：工具策略確認尚未解決，系統已拒絕略過確認直接結束。最後問題：" +
 				agentexec.TruncateText(guardErr.details, 800) +
-				"。当前时间线保留在最新已成功写入的版本；你可以继续让我从这里诊断或修复。"
+				"。目前時間線保留在最新已成功寫入的版本；你可以繼續讓我從這裡診斷或修復。"
 		case "timeline_check_missing":
 			return fmt.Sprintf(
-				"本轮没有完成终态验收：编辑已写入 %s，但 Harness 未能取得这个精确版本的自动检查证据，因此我不能声称剪辑已经完成。你可以继续让我验证并修复未通过项。",
+				"本輪未完成最終驗收：編輯已寫入 %s，但 Harness 未能取得這個確切版本的自動檢查證據，因此我不能聲稱剪接已完成。你可以繼續讓我驗證並修復未通過的項目。",
 				guardErr.mutationTimelineID,
 			)
 		case "timeline_mutation_unverified":
-			return "本轮没有完成终态验收：时间线编辑返回了成功状态，但没有携带有效的 timeline_id，系统无法确认实际写入版本，因此已拒绝成功声明。你可以继续让我读取最新时间线并重新检查。"
+			return "本輪未完成最終驗收：時間線編輯回傳成功狀態，但沒有有效的 timeline_id，系統無法確認實際寫入版本，因此已拒絕成功聲明。你可以繼續讓我讀取最新時間線並重新檢查。"
 		case "timeline_check_unverified":
-			return "本轮没有完成终态验收：Harness 自动检查没有携带有效的 timeline_id，系统无法确认实际检查版本，因此已拒绝成功声明。你可以继续让我读取最新时间线并重新检查。"
+			return "本輪未完成最終驗收：Harness 自動檢查沒有有效的 timeline_id，系統無法確認實際檢查版本，因此已拒絕成功聲明。你可以繼續讓我讀取最新時間線並重新檢查。"
 		case "timeline_check_stale":
 			return fmt.Sprintf(
-				"本轮没有完成终态验收：最新编辑是 %s，但最后成功检查的是 %s，检查结果已经过期，因此我不能声称剪辑已经完成。你可以继续让我检查最新版本。",
+				"本輪未完成最終驗收：最新編輯是 %s，但最後成功檢查的是 %s，檢查結果已過期，因此我不能聲稱剪接已完成。你可以繼續讓我檢查最新版本。",
 				guardErr.mutationTimelineID,
 				guardErr.checkTimelineID,
 			)
 		case "timeline_latest_changed":
 			return fmt.Sprintf(
-				"本轮没有完成终态验收：检查后时间线又发生了变化，已编辑版本是 %s，当前最新版本是 %s，因此我不能声称剪辑已经完成。你可以继续让我读取并检查最新版本。",
+				"本輪未完成最終驗收：檢查後時間線又有變化，已編輯版本是 %s，目前最新版本是 %s，因此我不能聲稱剪接已完成。你可以繼續讓我讀取並檢查最新版本。",
 				guardErr.mutationTimelineID,
 				guardErr.latestTimelineID,
 			)
 		case "terminal_late_tool_call":
-			return "本轮没有完成：模型在最终回复中又请求了工具调用，但该调用未被执行。系统已丢弃未验收的成功正文；你可以继续让我重新执行并检查最新时间线。"
+			return "本輪未完成：模型在最終回覆中再次要求調用工具，但該調用未執行。系統已捨棄未驗收的成功正文；你可以繼續讓我重新執行並檢查最新時間線。"
 		}
 	}
 	var timeoutErr *modelResponseTimeoutError
 	if errors.As(turnErr, &timeoutErr) {
 		return fmt.Sprintf(
-			"本轮没有完成：模型响应超时，已自动重试 %d 次仍未恢复。系统已停止重试。你可以继续给出下一步指令，我会从当前最新时间线接着执行。",
+			"本輪未完成：模型回應逾時，已自動重試 %d 次仍未恢復。系統已停止重試。你可以繼續給出下一步指令，我會從目前最新時間線接着執行。",
 			timeoutErr.Retries,
 		)
 	}
 	var contextLengthErr *modelContextLengthError
 	if errors.As(turnErr, &contextLengthErr) {
 		return fmt.Sprintf(
-			"本轮没有完成：对话上下文超出了模型长度上限，已自动压缩并重试 %d 次仍无法容纳。系统已停止重试。你可以精简指令或另开新话题后再试，我会从当前最新时间线接着执行。",
+			"本輪未完成：對話上下文超出模型長度上限，已自動壓縮並重試 %d 次仍無法容納。系統已停止重試。你可以精簡指令或另開新話題再試，我會從目前最新時間線接着執行。",
 			contextLengthErr.Retries,
 		)
 	}
@@ -1818,9 +1818,9 @@ func terminalFailureReply(ctx context.Context, turnErr error) string {
 		details = agentexec.TruncateText(turnErr.Error(), 800)
 	}
 	if details == "" {
-		details = "本轮执行没有生成可交付结果"
+		details = "本輪執行沒有生成可交付結果"
 	}
 
-	return "本轮没有完成，系统已按本回合安全上限或终态错误结束执行。最后问题：" + details +
-		"。你可以继续告诉我下一步怎么处理，我会从当前最新时间线接着执行。"
+	return "本輪未完成，系統已因本回合執行上限或最終錯誤而結束執行。最後問題：" + details +
+		"。你可以繼續告訴我下一步怎樣處理，我會從目前最新時間線接着執行。"
 }

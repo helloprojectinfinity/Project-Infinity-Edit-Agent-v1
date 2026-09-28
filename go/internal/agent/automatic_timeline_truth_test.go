@@ -508,7 +508,7 @@ func TestStopGateStateAndFeedbackHelpers(t *testing.T) {
 	if exhausted := stopGateFeedbackMessage(pending); !strings.Contains(exhausted.Content, "continuation 已耗尽") {
 		t.Fatalf("exhausted feedback=%s", exhausted.Content)
 	}
-	if reply := stopGateNotCompletedReply(pending); !strings.Contains(reply, "终验程序未能完成") ||
+	if reply := stopGateNotCompletedReply(pending); !strings.Contains(reply, "最終檢查程序未能完成") ||
 		!strings.Contains(reply, "checker unavailable") {
 		t.Fatalf("not_completed reply=%q", reply)
 	}

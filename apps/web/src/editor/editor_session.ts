@@ -76,7 +76,7 @@ export class EditorSession {
     this.pending = compactEditorOperations([...this.inFlight, ...this.pending]);
     this.inFlight = [];
     this.state = "error";
-    this.error = error instanceof Error ? error.message : "时间线保存失败";
+    this.error = error instanceof Error ? error.message : "時間線儲存失敗";
     this.emit();
   }
 
@@ -113,7 +113,7 @@ export class EditorSession {
         pending.push(operation);
       } catch (replayError) {
         replayErrors.push(
-          replayError instanceof Error ? replayError.message : `无法重放 ${operation.kind}`
+          replayError instanceof Error ? replayError.message : `無法重放 ${operation.kind}`
         );
       }
     }
@@ -121,10 +121,10 @@ export class EditorSession {
     this.pending = compactEditorOperations(pending);
     this.timeline = rebased;
     this.state = "error";
-    const saveError = error instanceof Error ? error.message : "时间线保存失败";
+    const saveError = error instanceof Error ? error.message : "時間線儲存失敗";
     const isolatedCount = 1 + replayErrors.length;
     const replayDetail = replayErrors.length > 0 ? `：${replayErrors.join("；")}` : "";
-    this.error = `${saveError}；已隔离 ${isolatedCount} 项冲突操作，请基于最新时间线重做${replayDetail}`;
+    this.error = `${saveError}；已隔離 ${isolatedCount} 項衝突操作，請根據最新時間線重做${replayDetail}`;
     this.emit();
   }
 
@@ -202,7 +202,7 @@ export function applyLocalTimelineOperation(
       updateClip(timeline, operation, (clip) => {
         const gain = requiredNumber(operation.gain_db, "gain_db");
         if (gain < -60 || gain > 12) {
-          throw new Error("gain_db 必须在 [-60,12] 范围内");
+          throw new Error("gain_db 必須在 [-60,12] 範圍內");
         }
         clip.gain_db = gain;
       });
@@ -213,17 +213,17 @@ export function applyLocalTimelineOperation(
     case "edit_subtitle_text":
       updateClip(timeline, operation, (clip, track) => {
         if (track.track_id !== "subtitles") {
-          throw new Error("只能编辑字幕轨文字");
+          throw new Error("只能編輯字幕軌文字");
         }
         const hasText = Object.prototype.hasOwnProperty.call(operation, "text");
         const hasStyle = Object.prototype.hasOwnProperty.call(operation, "style");
         if (!hasText && !hasStyle) {
-          throw new Error("字幕编辑至少需要提供 text 或 style");
+          throw new Error("字幕編輯至少需要提供 text 或 style");
         }
         if (hasText) {
           const text = String(operation.text ?? "").trim();
           if (!text) {
-            throw new Error("字幕文字不能为空");
+            throw new Error("字幕文字不能為空");
           }
           clip.text = text;
         }
@@ -239,7 +239,7 @@ export function applyLocalTimelineOperation(
       updateClip(timeline, operation, (clip, track) => {
         const rate = requiredNumber(operation.playback_rate, "playback_rate");
         if (rate <= 0 || rate > 8) {
-          throw new Error("playback_rate 必须在 (0,8]");
+          throw new Error("playback_rate 必須在 (0,8]");
         }
         const oldDuration = clipDuration(clip);
         const sourceDuration = numberValue(clip.source_end_frame) - numberValue(clip.source_start_frame);
@@ -257,7 +257,7 @@ export function applyLocalTimelineOperation(
     case "remove_track_clips": {
       const track = findTrack(timeline, String(operation.track_id ?? ""));
       if (track.track_id === "visual_base" || track.locked) {
-        throw new Error("不能清空锁定轨道或主视觉轨");
+        throw new Error("不能清空鎖定軌道或主視覺軌");
       }
       track.clips = [];
       break;
@@ -266,7 +266,7 @@ export function applyLocalTimelineOperation(
       insertClip(timeline, operation);
       break;
     default:
-      throw new Error(`暂不支持本地时间线操作：${operation.kind}`);
+      throw new Error(`暫不支援本地時間線操作：${operation.kind}`);
   }
   clampTimelineFades(timeline);
   return timeline;
@@ -291,12 +291,12 @@ function splitClip(timeline: TimelineJson, operation: TimelineOperation): void {
         continue;
       }
       if (track.locked) {
-        throw new Error(`轨道 ${track.track_id} 已锁定`);
+        throw new Error(`軌道 ${track.track_id} 已鎖定`);
       }
       const start = numberValue(clip.timeline_start_frame);
       const end = numberValue(clip.timeline_end_frame);
       if (!clip.asset_id || splitFrame <= start || splitFrame >= end) {
-        throw new Error("分割点必须位于片段内部");
+        throw new Error("分割點必須位於片段內部");
       }
       const rate = Math.max(0.01, numberValue(clip.playback_rate, 1));
       const sourceSplit = numberValue(clip.source_start_frame) + Math.round((splitFrame - start) * rate);
@@ -304,7 +304,7 @@ function splitClip(timeline: TimelineJson, operation: TimelineOperation): void {
         sourceSplit <= numberValue(clip.source_start_frame) ||
         sourceSplit >= numberValue(clip.source_end_frame)
       ) {
-        throw new Error("分割后的素材源范围无效");
+        throw new Error("分割後的素材來源範圍無效");
       }
       const left = {
         ...clip,
@@ -337,17 +337,17 @@ function moveClip(timeline: TimelineJson, operation: TimelineOperation): void {
   const targetFrame = requiredInteger(operation.target_frame, "target_frame");
   const mode = String(operation.mode ?? "insert");
   if (mode !== "insert" && mode !== "overwrite") {
-    throw new Error("移动模式必须是 insert 或 overwrite");
+    throw new Error("移動模式必須是 insert 或 overwrite");
   }
   const targetTrackId = String(operation.target_track_id ?? located.track.track_id);
   const targetTrack = findTrack(timeline, targetTrackId);
   assertTrackUnlocked(targetTrack);
   if (!tracksCompatible(located.track, targetTrack, located.clip)) {
-    throw new Error(`片段不能从 ${located.track.track_id} 移到 ${targetTrackId}`);
+    throw new Error(`片段不能從 ${located.track.track_id} 移到 ${targetTrackId}`);
   }
   if (located.clip.linked && located.clip.parent_block_id) {
     if (targetTrackId !== located.track.track_id) {
-      throw new Error("跨轨移动前请先取消片段联动");
+      throw new Error("跨軌移動前請先解除片段連結");
     }
     const primary = linkedMembers(timeline, located.clip).find(
       (member) => member.track.track_id === "visual_base"
@@ -363,7 +363,7 @@ function moveClip(timeline: TimelineJson, operation: TimelineOperation): void {
   }
   const duration = clipDuration(located.clip);
   if (duration <= 0) {
-    throw new Error("移动片段时长无效");
+    throw new Error("移動片段時長無效");
   }
   const sourceTrackId = located.track.track_id;
   const sourceStart = numberValue(located.clip.timeline_start_frame);
@@ -376,7 +376,7 @@ function moveClip(timeline: TimelineJson, operation: TimelineOperation): void {
   let destinationFrame = targetFrame;
   if (sourceTrackId === "visual_base") {
     if ((located.track.clips ?? []).length === 0) {
-      throw new Error("主视觉轨至少保留一个片段");
+      throw new Error("主視覺軌至少保留一個片段");
     }
     deleteRange(timeline, sourceStart, sourceEnd);
     if (destinationFrame > sourceEnd) {
@@ -398,7 +398,7 @@ function moveClip(timeline: TimelineJson, operation: TimelineOperation): void {
 
   const destination = findTrack(timeline, targetTrackId);
   if (duration > timeline.duration_frames) {
-    throw new Error("片段长于时间线，不能放入目标轨");
+    throw new Error("片段長於時間線，不能放入目標軌");
   }
   const start = clamp(destinationFrame, 0, Math.max(0, timeline.duration_frames - duration));
   if (mode === "insert") {
@@ -420,7 +420,7 @@ function reorderPrimary(timeline: TimelineJson, moving: TimelineClipJson, target
   const primary = findTrack(timeline, "visual_base");
   assertTrackUnlocked(primary);
   if (targetFrame < 0 || targetFrame > timeline.duration_frames) {
-    throw new Error("移动位置超出时间线");
+    throw new Error("移動位置超出時間線");
   }
   for (const member of linkedMembers(timeline, moving)) {
     if (member.track.track_id !== "visual_base") {
@@ -483,7 +483,7 @@ function overwritePrimary(
   assertTrackUnlocked(primary);
   const duration = clipDuration(moving);
   if (duration > timeline.duration_frames) {
-    throw new Error("覆盖片段长于当前时间线");
+    throw new Error("覆蓋片段長於目前時間線");
   }
   const targetFrame = clamp(requestedFrame, 0, timeline.duration_frames - duration);
   eraseTrackRange(primary, targetFrame, targetFrame + duration);
@@ -581,10 +581,10 @@ function trimClipEdge(timeline: TimelineJson, operation: TimelineOperation): voi
   const start = numberValue(located.clip.timeline_start_frame);
   const end = numberValue(located.clip.timeline_end_frame);
   if (edge !== "start" && edge !== "end") {
-    throw new Error("裁剪边必须是 start 或 end");
+    throw new Error("裁剪邊必須是 start 或 end");
   }
   if (frame <= start || frame >= end) {
-    throw new Error("裁剪点必须位于片段内部");
+    throw new Error("裁剪點必須位於片段內部");
   }
   const members = linkedMembers(timeline, located.clip);
   for (const member of members) {
@@ -614,7 +614,7 @@ function deleteClip(timeline: TimelineJson, operation: TimelineOperation): void 
   for (const member of members) {
     assertTrackUnlocked(member.track);
     if (member.track.track_id === "visual_base" && (member.track.clips ?? []).length <= 1) {
-      throw new Error("主视觉轨至少保留一个片段");
+      throw new Error("主視覺軌至少保留一個片段");
     }
   }
   if (members.some((member) => member.track.track_id === "visual_base")) {
@@ -638,7 +638,7 @@ function deleteClip(timeline: TimelineJson, operation: TimelineOperation): void 
 function deleteRange(timeline: TimelineJson, start: number, end: number): void {
   const delta = end - start;
   if (start < 0 || end > timeline.duration_frames || delta <= 0 || delta >= timeline.duration_frames) {
-    throw new Error("删除范围无效");
+    throw new Error("刪除範圍無效");
   }
   ensureRippleUnlocked(timeline, start, "");
   for (const track of timeline.tracks) {
@@ -681,7 +681,7 @@ function setTrackState(timeline: TimelineJson, operation: TimelineOperation): vo
   for (const key of ["muted", "solo", "locked"] as const) {
     if (typeof operation[key] === "boolean") {
       if (key === "muted" && track.track_id === "visual_base" && operation[key] === true) {
-        throw new Error("主视觉轨不能静音");
+        throw new Error("主視覺軌不能靜音");
       }
       track[key] = operation[key];
       changed = true;
@@ -689,13 +689,13 @@ function setTrackState(timeline: TimelineJson, operation: TimelineOperation): vo
   }
   if (typeof operation.gain_db === "number") {
     if (trackFamily(track) !== "audio" || operation.gain_db < -60 || operation.gain_db > 12) {
-      throw new Error("只有音频轨支持 [-60,12] dB 的轨道音量");
+      throw new Error("只有音訊軌支援 [-60,12] dB 的軌道音量");
     }
     track.gain_db = operation.gain_db;
     changed = true;
   }
   if (!changed) {
-    throw new Error("轨道状态操作没有可更新字段");
+    throw new Error("軌道狀態操作沒有可更新欄位");
   }
 }
 
@@ -724,7 +724,7 @@ function setClipLinked(timeline: TimelineJson, operation: TimelineOperation): vo
       member.clip.timeline_end_frame === located.clip.timeline_end_frame
   );
   if (!partner) {
-    throw new Error("没有可联动的同源音画片段");
+    throw new Error("沒有可連結的同源聲畫片段");
   }
   assertTrackUnlocked(partner.track);
   const group =
@@ -741,7 +741,7 @@ function trimClip(timeline: TimelineJson, operation: TimelineOperation): void {
     const sourceStart = requiredInteger(operation.source_start_frame, "source_start_frame");
     const sourceEnd = requiredInteger(operation.source_end_frame, "source_end_frame");
     if (sourceStart < 0 || sourceEnd <= sourceStart) {
-      throw new Error("素材裁剪范围无效");
+      throw new Error("素材裁剪範圍無效");
     }
     const oldDuration = clipDuration(clip);
     const rate = effectiveRate(clip);
@@ -762,7 +762,7 @@ function insertSubtitle(timeline: TimelineJson, operation: TimelineOperation): v
   const end = requiredInteger(operation.end_frame, "end_frame");
   const text = String(operation.text ?? "").trim();
   if (start < 0 || end <= start || end > timeline.duration_frames || !text) {
-    throw new Error("字幕时间范围或文字无效");
+    throw new Error("字幕時間範圍或文字無效");
   }
   const subtitleStyle = optionalSubtitleStyle(operation.style);
   track.clips = [
@@ -787,7 +787,7 @@ const subtitleStyles = new Set<SubtitleStyle>([
 function requiredSubtitleStyle(value: unknown): SubtitleStyle {
   const style = String(value ?? "").trim();
   if (!subtitleStyles.has(style as SubtitleStyle)) {
-    throw new Error("字幕 style 必须是 default、large_center、top_bar、minimal 或 bold_bottom");
+    throw new Error("字幕 style 必須是 default、large_center、top_bar、minimal 或 bold_bottom");
   }
   return style as SubtitleStyle;
 }
@@ -834,7 +834,7 @@ function updateClip(
 function setClipFades(timeline: TimelineJson, operation: TimelineOperation): void {
   const located = locateEditableClip(timeline, targetClipId(operation));
   if (trackFamily(located.track) !== "audio" && located.clip.asset_kind !== "video") {
-    throw new Error("只有音频片段或带声音的视频片段支持淡入淡出");
+    throw new Error("只有音訊片段或帶聲音的影片片段支援淡入淡出");
   }
   const fadeIn = requiredInteger(operation.fade_in_frames, "fade_in_frames");
   const fadeOut = requiredInteger(operation.fade_out_frames, "fade_out_frames");
@@ -846,7 +846,7 @@ function setClipFades(timeline: TimelineJson, operation: TimelineOperation): voi
   for (const member of members) {
     assertTrackUnlocked(member.track);
     if (fadeIn < 0 || fadeOut < 0 || fadeIn + fadeOut > clipDuration(member.clip)) {
-      throw new Error("淡入与淡出必须为非负整数帧，且总和不能超过片段时长");
+      throw new Error("淡入與淡出必須為非負整數幀，且總和不能超過片段時長");
     }
   }
   for (const member of members) {
@@ -909,13 +909,13 @@ function locateClip(timeline: TimelineJson, clipId: string): LocatedClip {
       return { track, clip };
     }
   }
-  throw new Error(`找不到时间线片段：${clipId}`);
+  throw new Error(`找不到時間線片段：${clipId}`);
 }
 
 function findTrack(timeline: TimelineJson, trackId: string): TimelineTrackJson {
   const track = timeline.tracks.find((candidate) => candidate.track_id === trackId);
   if (!track) {
-    throw new Error(`找不到时间线轨道：${trackId}`);
+    throw new Error(`找不到時間線軌道：${trackId}`);
   }
   return track;
 }
@@ -928,7 +928,7 @@ function locateEditableClip(timeline: TimelineJson, clipId: string): LocatedClip
 
 function assertTrackUnlocked(track: TimelineTrackJson): void {
   if (track.locked) {
-    throw new Error(`轨道 ${track.track_id} 已锁定`);
+    throw new Error(`軌道 ${track.track_id} 已鎖定`);
   }
 }
 
@@ -942,7 +942,7 @@ function ensureRippleUnlocked(
       continue;
     }
     if ((track.clips ?? []).some((clip) => numberValue(clip.timeline_end_frame) > boundary)) {
-      throw new Error(`轨道 ${track.track_id} 已锁定，不能执行波纹编辑`);
+      throw new Error(`軌道 ${track.track_id} 已鎖定，不能執行波紋編輯`);
     }
   }
 }
@@ -1025,7 +1025,7 @@ function targetClipId(operation: TimelineOperation, required = true): string {
     return value;
   }
   if (required) {
-    throw new Error("时间线操作缺少 timeline_clip_id");
+    throw new Error("時間線操作缺少 timeline_clip_id");
   }
   return "";
 }
@@ -1056,14 +1056,14 @@ function byStartFrame(left: TimelineClipJson, right: TimelineClipJson): number {
 
 function requiredInteger(value: unknown, name: string): number {
   if (typeof value !== "number" || !Number.isInteger(value)) {
-    throw new Error(`${name} 必须是整数帧`);
+    throw new Error(`${name} 必須是整數幀`);
   }
   return value;
 }
 
 function requiredNumber(value: unknown, name: string): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new Error(`${name} 必须是数字`);
+    throw new Error(`${name} 必須是數字`);
   }
   return value;
 }

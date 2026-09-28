@@ -324,7 +324,7 @@ func TestAutomaticPreviewQAFourthVersionBudgetBlocksWithoutDanglingGate(t *testi
 	if err != nil || shouldRun {
 		t.Fatalf("fourth preview should_run=%v err=%v", shouldRun, err)
 	}
-	if override := state.takeFinalOverride(); !strings.Contains(override, "未达到可交付") {
+	if override := state.takeFinalOverride(); !strings.Contains(override, "未達到可交付") {
 		t.Fatalf("fourth preview override=%q", override)
 	}
 	started, blocked := 0, 0
@@ -725,7 +725,7 @@ esac
 	report := service.executeAutomaticPreviewQA(ctx, draftID, "", "explicit_preview_or_qa_request", "auto", false)
 	if report.Status != "succeeded" || report.Passed ||
 		len(report.CoreChecks) != len(automaticPreviewCoreChecks) ||
-		!previewQAHasErrorIssue(report.Issues) || !strings.Contains(report.Summary, "阻断错误") {
+		!previewQAHasErrorIssue(report.Issues) || !strings.Contains(report.Summary, "阻斷錯誤") {
 		t.Fatalf("report=%#v", report)
 	}
 }

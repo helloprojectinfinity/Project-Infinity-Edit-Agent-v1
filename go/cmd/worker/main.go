@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -81,7 +82,7 @@ func run() error {
 			if modelErr != nil {
 				return modelErr
 			}
-			analyzer = understanding.NewAnalyzer(vision)
+			analyzer = understanding.NewAnalyzer(vision).WithVisionModelLabel(providers.DefaultVisionModel)
 		}
 	case config.ProviderArk:
 		// worker 只需视觉档；选择 ark 时缺密钥/模型由 NewArk 在启动期报错，不静默降级。
@@ -97,7 +98,24 @@ func run() error {
 		if modelErr != nil {
 			return modelErr
 		}
-		analyzer = understanding.NewAnalyzer(vision)
+		label := strings.TrimSpace(os.Getenv("RUSHES_ARK_VISION_MODEL"))
+		if label == "" {
+			label = "ark-vision"
+		}
+		analyzer = understanding.NewAnalyzer(vision).WithVisionModelLabel(label)
+	case config.ProviderOpenRouter:
+		// worker 只需视觉档；选择 openrouter 时缺密钥/模型由 NewOpenRouterChatModel
+		// 在启动期报错，不静默降级为本地降级 analyzer。
+		vision, modelErr := providers.NewOpenRouterChatModel(context.Background(), providers.OpenRouterConfig{
+			APIKey:  os.Getenv("RUSHES_OPENROUTER_API_KEY"),
+			BaseURL: os.Getenv("RUSHES_OPENROUTER_BASE_URL"),
+			Model:   openRouterVisionModelName(),
+			Timeout: 180 * time.Second,
+		})
+		if modelErr != nil {
+			return modelErr
+		}
+		analyzer = understanding.NewAnalyzer(vision).WithVisionModelLabel(openRouterVisionModelName())
 	}
 	if err := worker.RegisterUnderstand(registry, database, analyzer); err != nil {
 		return err
@@ -184,4 +202,14 @@ func firstNonEmpty(values ...string) string {
 
 func dashScopeVisionModelName() string {
 	return firstNonEmpty(os.Getenv("RUSHES_QWEN_VISION_MODEL"), providers.DefaultVisionModel)
+}
+
+// openRouterVisionModelName 解析视觉模型 ID；用户不填则回落到聊天模型或 OpenRouter
+// 默认模型，匹配 NewOpenRouterTiers 的语义。
+func openRouterVisionModelName() string {
+	return firstNonEmpty(
+		os.Getenv("RUSHES_OPENROUTER_VISION_MODEL"),
+		os.Getenv("RUSHES_OPENROUTER_CHAT_MODEL"),
+		providers.DefaultOpenRouterVisionModel,
+	)
 }

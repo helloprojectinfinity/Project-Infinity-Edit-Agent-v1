@@ -113,7 +113,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   }
 
   if (!response.ok) {
-    throw new ApiError(response.status, `API 请求失败：${response.status}`, await readPayload(response));
+    throw new ApiError(response.status, `API 請求失敗：${response.status}`, await readPayload(response));
   }
 
   if (response.status === 204) {
@@ -128,7 +128,7 @@ function createApiEventSource(path: string): EventSource {
   const token = getAuthToken();
   if (!token) {
     handleUnauthorized();
-    throw new ApiError(401, "缺少启动 token");
+    throw new ApiError(401, "缺少啟動 token");
   }
   const url = new URL(path, window.location.origin);
   url.searchParams.set("token", token);

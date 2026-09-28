@@ -349,7 +349,7 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
   const applyTimelinePatch = useCallback(
     (op: TimelineOperation) => {
       if (editLeaseActive) {
-        setTimelineEditError("Agent 正在编辑，时间线暂时只读。");
+        setTimelineEditError("Agent 正在編輯，時間線暫時唯讀。");
         return;
       }
       try {
@@ -410,7 +410,7 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
     }
     const detail = findTimelineClip(editorTimeline, selectedClipId);
     if (!detail?.assetId) {
-      setTimelineEditError("请选择视频或图片片段后再分割。");
+      setTimelineEditError("請選擇影片或圖片片段後再分割。");
       return;
     }
     const fps = editorTimeline.fps > 0 ? editorTimeline.fps : 30;
@@ -427,7 +427,7 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
     }
     const detail = findTimelineClip(editorTimeline, selectedClipId);
     if (!detail) {
-      setTimelineEditError("找不到当前选中的片段。");
+      setTimelineEditError("找不到當前選中的片段。");
       return;
     }
     applyTimelinePatch({ kind: "delete_clip", timeline_clip_id: selectedClipId });
@@ -497,7 +497,7 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
       timeline_clip_id: clipId,
       start_frame: startFrame,
       end_frame: endFrame,
-      text: "在这里输入字幕"
+      text: "在這裡輸入字幕"
     });
   }, [applyTimelinePatch, editorTimeline, playheadSec]);
 
@@ -595,11 +595,11 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
     persistedTimelineId === null ||
     editorSnapshot?.saveState !== "saved";
   const exportDisabledReason = editLeaseActive
-    ? "Agent 正在编辑"
+    ? "Agent 正在編輯"
     : editorSnapshot?.saveState !== "saved"
-      ? "请等待时间线保存完成"
+      ? "請等待時間線儲存完成"
       : timelineVersion === null || persistedTimelineId === null
-          ? "当前没有可导出的时间线"
+          ? "目前沒有可匯出的時間線"
           : undefined;
 
   return (
@@ -620,7 +620,7 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
             <button
               className="grid size-6 shrink-0 place-items-center rounded-sm text-fg-faint hover:bg-hover hover:text-fg"
               type="button"
-              aria-label="重命名草稿"
+              aria-label="重新命名草稿"
               onClick={() => openEntityDialog({ kind: "renameDraft", draftId })}
             >
               <Pencil size={13} strokeWidth={1.75} aria-hidden />
@@ -631,7 +631,7 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
           <div className="flex items-center gap-2">
             {editLeaseActive ? (
               <span className="whitespace-nowrap text-2xs text-accent" role="status">
-                Agent 正在编辑
+                Agent 正在編輯
               </span>
             ) : null}
             <ExportControl
@@ -662,7 +662,7 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
           orientation="vertical"
           value={chatPanelWidth}
           onChange={setChatPanelWidth}
-          ariaLabel="调整对话面板宽度"
+          ariaLabel="調整對話面板寬度"
         />
 
         <main
@@ -688,12 +688,12 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
               orientation="vertical"
               value={materialsPanelWidth}
               onChange={setMaterialsPanelWidth}
-              ariaLabel="调整素材面板宽度"
+              ariaLabel="調整素材面板寬度"
             />
 
-            <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-panel" aria-label="预览区">
+            <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-panel" aria-label="預覽區">
               <div className="flex h-8 shrink-0 items-center justify-between border-b border-line px-3">
-                <span className="text-xs font-semibold tracking-wide">预览</span>
+                <span className="text-xs font-semibold tracking-wide">預覽</span>
                 {timelinePayload?.summary ? (
                   <span className="max-w-[45%] truncate text-2xs text-fg-faint">
                     {timelinePayload.summary}
@@ -704,9 +704,9 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
                 {previewingAsset ? (
                   <AssetPreviewPane asset={previewingAsset} onClose={closeAssetPreview} />
                 ) : timelineVersion === null ? (
-                  <PreviewPlaceholder text="暂无时间线。告诉 AI 如何剪辑，或先导入素材。" />
+                  <PreviewPlaceholder text="暫無時間線。告訴 AI 如何剪接，或先匯入素材。" />
                 ) : timelineQuery.isPending ? (
-                  <PreviewPlaceholder text="时间线加载中…" />
+                  <PreviewPlaceholder text="時間線載入中…" />
                 ) : editorTimeline ? (
                   <DiffusionPreviewPlayer
                     key={draftId}
@@ -717,7 +717,7 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
                     seekSec={seekSec}
                   />
                 ) : (
-                  <PreviewPlaceholder text="时间线暂不可用。" />
+                  <PreviewPlaceholder text="時間線暫時不可用。" />
                 )}
               </div>
             </section>
@@ -728,21 +728,21 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
             invert
             value={timelinePanelHeight}
             onChange={setTimelinePanelHeight}
-            ariaLabel="调整时间线高度"
+            ariaLabel="調整時間線高度"
           />
 
           <section
             ref={timelineSectionRef}
             className="flex min-h-0 shrink-0 flex-col bg-panel"
             style={{ height: timelinePanelHeight }}
-            aria-label="时间线"
+            aria-label="時間線"
           >
             <div className="scrollbar-none flex h-9 shrink-0 items-center gap-1 overflow-x-auto overflow-y-hidden border-b border-line px-2">
               <TimelineToolButton
                 icon={MousePointer2}
-                label="选择"
+                label="選擇"
                 shortcut="V"
-                description="选择片段，并在时间线上移动或调整它。"
+                description="選擇片段，並在時間線上移動或調整。"
                 active={editMode === "select"}
                 onClick={() => setEditMode("select")}
               />
@@ -750,7 +750,7 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
                 icon={Crop}
                 label="裁剪"
                 shortcut="N"
-                description="拖动片段左右边缘，调整素材的开始和结束位置。"
+                description="拖動片段左右邊緣，調整素材的開始和結束位置。"
                 active={editMode === "trim"}
                 onClick={() => setEditMode("trim")}
               />
@@ -758,7 +758,7 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
                 icon={Scissors}
                 label="刀片"
                 shortcut="B"
-                description="点击片段中的位置，把它切成前后两段。"
+                description="點擊片段中的位置，把它切成前後兩段。"
                 active={editMode === "blade"}
                 onClick={() => setEditMode("blade")}
               />
@@ -766,31 +766,31 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
               <TimelineToolButton
                 icon={Scissors}
                 label="分割"
-                description="在当前播放头位置分割选中的片段。"
+                description="在目前播放頭位置分割選中的片段。"
                 disabled={timelineEditingDisabled || !selectedClipId}
                 onClick={handleSplitSelected}
               />
               <TimelineToolButton
                 icon={Trash2}
-                label="删除"
-                description="从时间线中删除当前选中的片段。"
+                label="刪除"
+                description="從時間線中刪除目前選中的片段。"
                 disabled={timelineEditingDisabled || !selectedClipId}
                 onClick={handleDeleteSelected}
               />
               <TimelineToolButton
                 icon={Captions}
                 label="添加字幕"
-                description="在当前播放头位置添加一段可编辑字幕。"
+                description="在目前播放頭位置添加一段可編輯字幕。"
                 disabled={timelineEditingDisabled}
                 onClick={handleAddSubtitle}
               />
               <TimelineToolButton
                 icon={selectedClipDetail?.linked ? Unlink2 : Link2}
-                label={selectedClipDetail?.linked ? "取消视频与原声绑定" : "绑定视频与原声"}
+                label={selectedClipDetail?.linked ? "解除影片與原聲連結" : "連結影片與原聲"}
                 description={
                   selectedClipDetail?.linked
-                    ? "取消后，视频和同源原声可以分别编辑。"
-                    : "绑定后，视频和同源原声会一起移动、分割、裁剪和删除。"
+                    ? "解除後，影片和同源原聲可以分別編輯。"
+                    : "連結後，影片和同源原聲會一起移動、分割、裁剪和刪除。"
                 }
                 active={selectedClipDetail?.linked === true}
                 disabled={
@@ -807,7 +807,7 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
               <TimelineToolButton
                 icon={Magnet}
                 label="吸附"
-                description="拖动或裁剪时，自动对齐播放头、片段边界和音乐拍点。"
+                description="拖動或裁剪時，自動對齊播放頭、片段邊界和音樂拍點。"
                 active={snapEnabled}
                 onClick={() => setSnapEnabled((current) => !current)}
               />
@@ -815,14 +815,14 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
               <TimelineToolButton
                 icon={ListPlus}
                 label="插入"
-                description="放入素材时推开后方片段，保留已有内容。"
+                description="放入素材時推開後方片段，保留已有內容。"
                 active={dropMode === "insert"}
                 onClick={() => setDropMode("insert")}
               />
               <TimelineToolButton
                 icon={Replace}
-                label="覆盖"
-                description="放入素材时覆盖目标位置原有的时间线内容。"
+                label="覆蓋"
+                description="放入素材時覆蓋目標位置原有的時間線內容。"
                 active={dropMode === "overwrite"}
                 onClick={() => setDropMode("overwrite")}
               />
@@ -842,14 +842,14 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
 
               <div className="flex shrink-0 items-center gap-0.5">
                 <TimelineToolbarTooltip
-                  title="缩小时间线"
-                  description="显示更长的时间范围。"
+                  title="縮小時間線"
+                  description="顯示更長的時間範圍。"
                 >
                   {(tooltipId) => (
                     <button
                       type="button"
                       className="grid size-7 place-items-center rounded-sm text-fg-muted hover:bg-hover disabled:opacity-35"
-                      aria-label="缩小时间线"
+                      aria-label="縮小時間線"
                       aria-describedby={tooltipId}
                       onClick={zoomOutTimeline}
                       disabled={pxPerSec <= TIMELINE_ZOOM_LEVELS[0]}
@@ -860,13 +860,13 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
                 </TimelineToolbarTooltip>
                 <TimelineToolbarTooltip
                   className="hidden xl:inline-flex"
-                  title="时间线缩放"
-                  description="拖动调节每秒像素密度；也可以按住 ⌘/Ctrl 滚动。"
+                  title="時間線縮放"
+                  description="拖動調節每秒像素密度；也可以按住 ⌘/Ctrl 捲動。"
                 >
                   {(tooltipId) => (
                     <input
                       type="range"
-                      aria-label="时间线缩放"
+                      aria-label="時間線縮放"
                       aria-describedby={tooltipId}
                       className="h-1 w-20 accent-accent"
                       min={TIMELINE_ZOOM_LEVELS[0]}
@@ -881,14 +881,14 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
                   {pxPerSec} px/s
                 </span>
                 <TimelineToolbarTooltip
-                  title="放大时间线"
-                  description="放大时间刻度，进行更精细的剪辑。"
+                  title="放大時間線"
+                  description="放大時間刻度，進行更精細的剪接。"
                 >
                   {(tooltipId) => (
                     <button
                       type="button"
                       className="grid size-7 place-items-center rounded-sm text-fg-muted hover:bg-hover disabled:opacity-35"
-                      aria-label="放大时间线"
+                      aria-label="放大時間線"
                       aria-describedby={tooltipId}
                       onClick={zoomInTimeline}
                       disabled={
@@ -900,18 +900,18 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
                   )}
                 </TimelineToolbarTooltip>
                 <TimelineToolbarTooltip
-                  title="适应完整时间线"
-                  description="自动缩放，让整条时间线完整显示在当前窗口中。"
+                  title="顯示完整時間線"
+                  description="自動縮放，讓整條時間線完整顯示在目前視窗中。"
                 >
                   {(tooltipId) => (
                     <button
                       type="button"
                       className="rounded-sm px-2 py-1 text-2xs text-fg-muted hover:bg-hover"
-                      aria-label="适应完整时间线"
+                      aria-label="顯示完整時間線"
                       aria-describedby={tooltipId}
                       onClick={fitTimeline}
                     >
-                      适应
+                      符合視窗
                     </button>
                   )}
                 </TimelineToolbarTooltip>
@@ -929,9 +929,9 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
 
             <div ref={timelineBodyRef} className="min-h-0 flex-1 overflow-hidden bg-ink">
               {timelineVersion === null ? (
-                <p className="px-4 py-5 text-xs text-fg-muted">暂无时间线</p>
+                <p className="px-4 py-5 text-xs text-fg-muted">暫無時間線</p>
               ) : timelineQuery.isPending ? (
-                <p className="px-4 py-5 text-xs text-fg-muted">时间线加载中…</p>
+                <p className="px-4 py-5 text-xs text-fg-muted">時間線載入中…</p>
               ) : editorTimeline ? (
                 <TimelineViewer
                   ref={timelineViewerRef}
@@ -954,7 +954,7 @@ export function DraftEditorView({ draftId }: { draftId: string }): ReactElement 
                   onTrackStateChange={handleTrackStateChange}
                 />
               ) : (
-                <p className="px-4 py-5 text-xs text-fg-muted">时间线暂不可用。</p>
+                <p className="px-4 py-5 text-xs text-fg-muted">時間線暫時不可用。</p>
               )}
             </div>
 
@@ -1123,14 +1123,14 @@ function AssetPreviewPane({
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden border border-line bg-panel">
       <div className="flex h-8 shrink-0 items-center justify-between gap-2 border-b border-line px-2">
-        <span className="truncate text-xs text-fg" title={`试看 · ${asset.filename || asset.asset_id}`}>
-          试看 · {asset.filename || asset.asset_id}
+        <span className="truncate text-xs text-fg" title={`試看 · ${asset.filename || asset.asset_id}`}>
+          試看 · {asset.filename || asset.asset_id}
         </span>
         <button
           type="button"
           className="grid size-6 shrink-0 place-items-center rounded-sm text-fg-muted transition-colors ease-standard hover:bg-hover hover:text-fg"
-          aria-label="关闭试看"
-          title="关闭试看（Esc）"
+          aria-label="關閉試看"
+          title="關閉試看（Esc）"
           onClick={onClose}
         >
           <X size={16} strokeWidth={1.75} aria-hidden />
@@ -1251,7 +1251,7 @@ function ClipDetailBar({
   return (
     <div className="scrollbar-none flex min-h-10 shrink-0 items-center gap-3 overflow-x-auto overflow-y-hidden border-t border-line bg-raised px-3 py-1 text-2xs text-fg-muted">
       <div className="min-w-0 shrink overflow-hidden text-ellipsis whitespace-nowrap">
-        <span className="font-semibold text-fg">已选：</span>
+        <span className="font-semibold text-fg">已選：</span>
         <span title={detail.clipId}>{detail.semanticName || detail.assetFilename || detail.label || detail.clipId}</span>
         <span className="mx-2 text-fg-faint">|</span>
         <span>{trackDisplayLabel(detail.trackId)}</span>
@@ -1265,7 +1265,7 @@ function ClipDetailBar({
         onClick={onReference}
       >
         <MessageSquarePlus size={12} aria-hidden />
-        引用给 AI
+        引用給 AI
       </button>
 
       {isLinkableTrack(detail.trackId) ? (
@@ -1278,11 +1278,11 @@ function ClipDetailBar({
           }`}
           disabled={editing || detail.trackLocked}
           aria-pressed={detail.linked}
-          title="绑定后，视频和同源原声会一起移动、分割、裁剪和删除"
+          title="連結後，影片和同源原聲會一起移動、分割、裁剪和刪除"
           onClick={() => onToggleLinked(detail.clipId, !detail.linked)}
         >
           {detail.linked ? <Unlink2 size={12} aria-hidden /> : <Link2 size={12} aria-hidden />}
-          {detail.linked ? "取消视频与原声绑定" : "绑定视频与原声"}
+          {detail.linked ? "解除影片與原聲連結" : "連結影片與原聲"}
         </button>
       ) : null}
 
@@ -1306,9 +1306,9 @@ function ClipDetailBar({
             <span className="w-10 font-mono tabular-nums">{clipGain.toFixed(0)} dB</span>
           </label>
           <label className="flex shrink-0 items-center gap-1.5">
-            <span>轨道</span>
+            <span>軌道</span>
             <input
-              aria-label="所选轨道音量"
+              aria-label="所選軌道音量"
               className="w-24 accent-accent"
               type="range"
               min={-60}
@@ -1365,10 +1365,10 @@ function ClipDetailBar({
 
       {subtitle ? (
         <div className="flex min-w-[280px] flex-1 items-center gap-1.5">
-          <label className="sr-only" htmlFor={`subtitle-${detail.clipId}`}>编辑字幕</label>
+          <label className="sr-only" htmlFor={`subtitle-${detail.clipId}`}>編輯字幕</label>
           <input
             id={`subtitle-${detail.clipId}`}
-            aria-label="编辑字幕"
+            aria-label="編輯字幕"
             className="h-7 min-w-0 flex-1 rounded-sm border border-line-strong bg-panel px-2 text-xs text-fg outline-none focus:border-accent"
             value={subtitleText}
             disabled={editing || detail.trackLocked}
@@ -1391,7 +1391,7 @@ function ClipDetailBar({
             }
             onClick={commitSubtitle}
           >
-            保存字幕
+            儲存字幕
           </button>
         </div>
       ) : null}
@@ -1463,11 +1463,11 @@ function isLinkableTrack(trackId: string): boolean {
 
 function trackDisplayLabel(trackId: string): string {
   const labels: Record<string, string> = {
-    visual_base: "主视频",
-    visual_overlay: "叠加",
-    original_audio: "原声",
+    visual_base: "主影片",
+    visual_overlay: "疊加",
+    original_audio: "原聲",
     voiceover: "配音",
-    bgm: "音乐",
+    bgm: "音樂",
     sfx: "音效",
     subtitles: "字幕"
   };
@@ -1495,11 +1495,11 @@ function editorSaveLabel(state: EditorSessionSnapshot["saveState"]): string {
     case "dirty":
       return "本地已更新";
     case "saving":
-      return "保存中…";
+      return "儲存中…";
     case "error":
-      return "保存失败";
+      return "儲存失敗";
     default:
-      return "已保存";
+      return "已儲存";
   }
 }
 

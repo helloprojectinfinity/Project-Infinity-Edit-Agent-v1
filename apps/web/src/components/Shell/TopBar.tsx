@@ -35,7 +35,7 @@ export function TopBar({
             type="button"
             onClick={onSettingsClick}
           >
-            设置
+            設定
           </button>
         ) : null}
       </div>

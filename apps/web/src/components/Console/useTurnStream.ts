@@ -204,7 +204,7 @@ export function reduceTurnStream(state: TurnStreamState, event: TurnStreamEvent)
           attempt,
           maxRetries,
           reason:
-            typeof event.reason === "string" && event.reason ? event.reason : "模型响应超时",
+            typeof event.reason === "string" && event.reason ? event.reason : "模型回應逾時",
           nextDelayMs:
             typeof event.next_delay_ms === "number" && event.next_delay_ms >= 0
               ? event.next_delay_ms

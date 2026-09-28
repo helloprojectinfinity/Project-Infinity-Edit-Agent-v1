@@ -173,6 +173,18 @@ func (service *Service) SetSpeechRecognizer(recognizer contracts.SpeechRecognize
 	service.executor.SetSpeechRecognizer(recognizer)
 }
 
+// SetVisionModelLabel 让上游（cmd/api）在装配完成后指定视觉模型标签，用于分析缓存
+// 键、降级提示与 DeepShot 版本字串。换 OpenRouter 等新 provider 时必须调用，避免
+// 复用旧 Qwen 缓存。
+func (service *Service) SetVisionModelLabel(label string) {
+	if service.executor != nil {
+		service.executor.SetVisionModelLabel(label)
+	}
+	if service.analyzer != nil {
+		service.analyzer = service.analyzer.WithVisionModelLabel(label)
+	}
+}
+
 func (service *Service) Close() {
 	service.cancel()
 	service.queue.Close()
@@ -661,7 +673,7 @@ func (service *Service) fallbackTurn(
 	return reply, nil
 }
 
-const userFinalExportGuidance = "最终视频只能由你明确触发：请在编辑器右侧的“导出”区域选择规格并点击“导出视频”，完成后可直接下载。"
+const userFinalExportGuidance = "最終影片需要由你啟動匯出：請點擊編輯器頂部的「匯出」，完成後即可下載。"
 
 func (service *Service) modelMessages(ctx context.Context, draftID string) ([]*schema.Message, error) {
 	boundary := contextMessageBoundary(ctx)
@@ -738,7 +750,7 @@ func tailRunes(value string, limit int) string {
 	return string(runes[len(runes)-limit:])
 }
 
-const contextCompactionPrompt = `你是 Rushes 的上下文压缩器。禁止调用工具，只输出简体中文交接摘要。
+const contextCompactionPrompt = `你是 Rushes 的上下文压缩器。禁止调用工具，只輸出繁體中文交接摘要；引用原文、檔名、ID 及工具名稱保持不變。
 摘要必须可替换被压缩的历史，并严格分为：
 1. 当前创作目标与用户明确偏好；
 2. 已确认的关键决定与约束；

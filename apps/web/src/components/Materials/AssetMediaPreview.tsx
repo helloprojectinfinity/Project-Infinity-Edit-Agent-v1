@@ -46,7 +46,7 @@ export function AssetMediaPreview({ asset, className }: AssetMediaPreviewProps):
   }
 
   if (asset.kind !== "video" && asset.kind !== "audio") {
-    return <PreviewNotice text="该素材类型不支持试看。" />;
+    return <PreviewNotice text="該素材類型不支援試看。" />;
   }
 
   // 原片播不动时回落：proxy 就绪换 proxy，否则说明还在转码。
@@ -67,10 +67,10 @@ export function AssetMediaPreview({ asset, className }: AssetMediaPreviewProps):
       <PreviewNotice
         text={
           asset.proxy_ready
-            ? "该素材暂时无法预览。"
+            ? "該素材暫時無法預覽。"
             : proxyJobActive
-              ? "转码中，稍候可预览。"
-              : "此素材格式暂不支持预览。"
+              ? "轉碼中，稍候可預覽。"
+              : "此素材格式暫不支援預覽。"
         }
       />
     );
@@ -78,7 +78,7 @@ export function AssetMediaPreview({ asset, className }: AssetMediaPreviewProps):
 
   const src =
     source === "proxy" ? api.mediaProxyUrl(asset.asset_id) : api.mediaSourceUrl(asset.asset_id);
-  const label = `${asset.filename || asset.asset_id} ${asset.kind === "audio" ? "音频" : "视频"}试看`;
+  const label = `${asset.filename || asset.asset_id} ${asset.kind === "audio" ? "音訊" : "影片"}試看`;
 
   // key 绑档位：切 source→proxy 时强制重挂媒体元素，清掉上一档的解码错误态。
   if (asset.kind === "audio") {

@@ -326,14 +326,14 @@ export function AssistantThread({
       <div
         ref={scrollerRef}
         className="absolute inset-0 overflow-y-auto px-4 py-4"
-        aria-label="消息列表"
+        aria-label="訊息列表"
         onScroll={handleScroll}
       >
         {isEmpty ? (
           <div className="flex min-h-40 items-start gap-2.5 px-1 py-6 text-fg-faint">
             <TerminalSquare size={15} strokeWidth={1.7} aria-hidden className="mt-0.5 shrink-0" />
             <p className="max-w-64 text-xs leading-5">
-              描述成片目标、节奏或要删除的内容。剪辑过程和工具调用会持续显示在这里。
+              描述成片目標、節奏或要刪除的內容。剪接過程和工具呼叫會持續顯示在這裡。
             </p>
           </div>
         ) : shouldVirtualize ? (
@@ -372,7 +372,7 @@ export function AssistantThread({
           onClick={jumpToLatest}
         >
           <CornerDownRight size={13} strokeWidth={1.8} aria-hidden />
-          查看最新输出
+          查看最新輸出
         </button>
       ) : null}
     </div>
@@ -418,13 +418,13 @@ function TurnActivityIndicator({
       <span className="min-w-0 flex-1 truncate font-medium">{label}</span>
       <time
         className="shrink-0 font-mono text-2xs tabular-nums text-fg-faint"
-        aria-label={`已用时 ${elapsedSeconds} 秒`}
-        title={`当前任务已运行 ${elapsedSeconds} 秒`}
+        aria-label={`已用時 ${elapsedSeconds} 秒`}
+        title={`當前任務已執行 ${elapsedSeconds} 秒`}
       >
         已用 {elapsed}
       </time>
       <span className="sr-only" role="status">
-        当前任务进行中：{label}
+        當前任務進行中：{label}
       </span>
     </div>
   );
@@ -472,7 +472,7 @@ function MemoryCardRowImpl({
 
   return (
     <MemoryCardShell testId="memory-updated-card">
-      <p className="font-medium">{written.length > 0 ? "已记住长期记忆" : "已移除长期记忆"}</p>
+      <p className="font-medium">{written.length > 0 ? "已記住長期記憶" : "已移除長期記憶"}</p>
       {item.entries.length > 0 ? (
         <ul className="mt-1.5 space-y-2" data-testid="memory-updated-entries">
           {item.entries.map((entry) => {
@@ -486,14 +486,14 @@ function MemoryCardRowImpl({
                   <div className="min-w-0">
                     <p className="break-words font-medium text-fg">{entry.statement}</p>
                     <p className="mt-0.5 break-words text-fg-faint">
-                      原话：“{entry.evidence_quote}”
+                      原話：“{entry.evidence_quote}”
                     </p>
                     <p className="mt-0.5 font-mono text-2xs text-fg-faint">{entry.key}</p>
                   </div>
                   {retracted ? (
                     <span className="shrink-0 text-2xs text-fg-faint">已撤回</span>
                   ) : stale ? (
-                    <span className="shrink-0 text-2xs text-fg-faint">已被后续更新</span>
+                    <span className="shrink-0 text-2xs text-fg-faint">已被後續更新</span>
                   ) : onRetractMemory ? (
                     <button
                       type="button"
@@ -507,7 +507,7 @@ function MemoryCardRowImpl({
                 </div>
                 {retractErrorKey === entry.key ? (
                   <p className="mt-1 text-2xs text-danger" role="alert">
-                    撤回失败，请重试。
+                    撤回失敗，請重試。
                   </p>
                 ) : null}
               </li>
@@ -516,7 +516,7 @@ function MemoryCardRowImpl({
         </ul>
       ) : written.length > 0 ? (
         <p className="mt-0.5 break-words text-xs text-fg-muted">
-          记住了 <span className="font-mono text-fg">{written.join("、")}</span>
+          記住了 <span className="font-mono text-fg">{written.join("、")}</span>
         </p>
       ) : null}
       {removed.length > 0 ? (
@@ -530,7 +530,7 @@ function MemoryCardRowImpl({
           className="mt-1 text-xs font-medium text-accent transition-opacity hover:opacity-80"
           onClick={onOpenSettings}
         >
-          在设置中查看和编辑
+          在設定中查看與編輯
         </button>
       ) : null}
     </MemoryCardShell>
@@ -592,7 +592,7 @@ function UserMessageRowImpl({
       >
         <div className="w-full max-w-[85%] rounded-sm border border-accent/60 bg-raised p-1.5">
           <textarea
-            aria-label="编辑消息"
+            aria-label="編輯訊息"
             autoFocus
             className="h-16 w-full resize-none bg-transparent px-1.5 py-1 text-[13px] leading-5 text-fg outline-none"
             value={draft}
@@ -620,7 +620,7 @@ function UserMessageRowImpl({
               disabled={resendPending || draft.trim().length === 0}
               onClick={submit}
             >
-              重发
+              重發
             </button>
           </div>
         </div>
@@ -637,8 +637,8 @@ function UserMessageRowImpl({
         <button
           type="button"
           className="mt-1 grid size-6 shrink-0 place-items-center rounded-sm text-fg-faint opacity-0 transition-opacity hover:bg-hover hover:text-fg focus-visible:opacity-100 group-hover/user:opacity-100 disabled:opacity-40"
-          aria-label="编辑并重发"
-          title="编辑并重发"
+          aria-label="編輯並重發"
+          title="編輯並重發"
           disabled={resendPending}
           onClick={() => {
             setDraft(originalText);
@@ -659,7 +659,7 @@ function UserMessageRowImpl({
                 key={`${ref.timeline_id}:${ref.timeline_clip_id}`}
                 type="button"
                 className="rounded-sm bg-panel/80 px-1.5 py-0.5 text-2xs text-accent-strong hover:bg-hover"
-                title="在时间线中定位这个片段"
+                title="在時間線中定位這個片段"
                 onClick={() => selectTimelineContextRef(ref.timeline_clip_id)}
               >
                 引用 · {timelineContextRefLabel(ref)}
@@ -805,8 +805,8 @@ function MessageRowImpl({
   );
 }
 
-// 回合以错误终止时落库的持久失败提示行（role=system, kind=turn_failure），
-// 刷新后仍从 DB 读回。
+// 回合以錯誤終止時落庫的持久失敗提示列（role=system, kind=turn_failure），
+// 重新整理後仍從 DB 讀回。
 function TurnFailureRowImpl({
   message,
   highlighted
@@ -824,7 +824,7 @@ function TurnFailureRowImpl({
     >
       <span aria-hidden className="mt-1.5 size-1.5 shrink-0 rounded-full bg-danger" />
       <div className="min-w-0 flex-1">
-        <span className="sr-only">本轮失败：</span>
+        <span className="sr-only">本輪失敗：</span>
         {message.content.map((part, index) =>
           part.type === "text" ? (
             <p key={`${message.id}:${index}`} className="break-words whitespace-pre-wrap">
@@ -853,8 +853,8 @@ function BackgroundActivityGroupImpl({
     >
       <summary className="-ml-1 inline-flex h-5 cursor-pointer list-none items-center gap-1.5 rounded-sm px-1 text-fg-muted transition-colors duration-fast hover:bg-hover hover:text-fg [&::-webkit-details-marker]:hidden">
         <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-ok" />
-        <span className="font-medium text-fg-muted">后台活动</span>
-        <span className="font-mono text-2xs text-fg-faint">{total} 条</span>
+        <span className="font-medium text-fg-muted">背景活動</span>
+        <span className="font-mono text-2xs text-fg-faint">{total} 條</span>
         <ChevronRight
           size={12}
           strokeWidth={1.8}
@@ -863,7 +863,7 @@ function BackgroundActivityGroupImpl({
         />
       </summary>
       <div className="mt-1 max-h-40 overflow-y-auto border-l-2 border-line-strong/50 pl-3">
-        <ul className="space-y-1" aria-label="后台活动详情">
+        <ul className="space-y-1" aria-label="背景活動詳情">
           {entries.map((entry) => (
             <li key={entry.text} className="flex items-start gap-2 text-xs leading-5 text-fg-muted">
               <span className="min-w-0 flex-1 whitespace-pre-wrap">{entry.text}</span>
@@ -920,17 +920,17 @@ function ToolActivityGroupImpl({
           {isActive
             ? "正在使用工具"
             : hasFailure
-              ? "工具执行失败"
+              ? "工具執行失敗"
               : hasRejected
-                ? "有调用未执行"
+                ? "有呼叫未執行"
                 : needsInput
-                  ? "工具调用需要处理"
+                  ? "工具呼叫需要處理"
                   : "已使用工具"}
         </span>
         <span className="min-w-0 flex-1 truncate text-fg-faint" title={toolGroupSummary(steps)}>
           {toolGroupSummary(steps)}
         </span>
-        {isActive ? <span className="shrink-0 text-2xs text-fg-faint">持续更新</span> : null}
+        {isActive ? <span className="shrink-0 text-2xs text-fg-faint">持續更新</span> : null}
         <ChevronRight
           size={12}
           strokeWidth={1.8}
@@ -954,12 +954,12 @@ function ToolActivityGroupImpl({
 function StopGateGroupImpl({ item }: { item: StreamStopGateItem }): ReactElement {
   const label =
     item.status === "checking"
-      ? "正在终验"
+      ? "正在終驗"
       : item.status === "blocked"
-        ? "终验尚未通过，Agent 将继续修复"
+        ? "終驗尚未通過，Agent 將繼續修復"
         : item.status === "passed"
-          ? "终验通过"
-          : "终验程序异常";
+          ? "終驗通過"
+          : "終驗程序異常";
   const tone =
     item.status === "passed"
       ? "border-ok/25 bg-ok/5"
@@ -1003,7 +1003,7 @@ function StopGateGroupImpl({ item }: { item: StreamStopGateItem }): ReactElement
         <ul className="mt-2 space-y-1 border-l border-warn/40 pl-3">
           {item.issues.map((issue, index) => (
             <li key={`${issue.code ?? "issue"}:${index}`}>
-              <span>{issue.message ?? issue.code ?? "未满足内容合同"}</span>
+              <span>{issue.message ?? issue.code ?? "未滿足內容合同"}</span>
               {issue.recovery ? <span className="ml-1 text-fg-faint">{issue.recovery}</span> : null}
             </li>
           ))}
@@ -1016,7 +1016,7 @@ function StopGateGroupImpl({ item }: { item: StreamStopGateItem }): ReactElement
       ) : null}
       {item.remainingIssueCount > 0 || item.resultRef ? (
         <p className="mt-1.5 font-mono text-2xs text-fg-faint">
-          {item.remainingIssueCount > 0 ? `另有 ${item.remainingIssueCount} 项；` : ""}
+          {item.remainingIssueCount > 0 ? `另有 ${item.remainingIssueCount} 項；` : ""}
           {item.resultRef ?? ""}
         </p>
       ) : null}
@@ -1067,7 +1067,7 @@ function ToolStepRowImpl({
           <div className="ml-2.5 mt-1 border-l border-line pl-3">
             {step.argsSummary ? (
               <div className="mb-1.5">
-                <p className="text-2xs font-medium text-fg-faint">输入</p>
+                <p className="text-2xs font-medium text-fg-faint">輸入</p>
                 <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap break-all font-mono text-[0.65rem] leading-4 text-fg-muted">
                   {formatToolPayload(step.argsSummary)}
                 </pre>
@@ -1075,7 +1075,7 @@ function ToolStepRowImpl({
             ) : null}
             {step.observation ? (
               <div>
-                <p className="text-2xs font-medium text-fg-faint">结果</p>
+                <p className="text-2xs font-medium text-fg-faint">結果</p>
                 <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-all font-mono text-[0.65rem] leading-4 text-fg-muted">
                   {formatToolPayload(step.observation)}
                 </pre>
@@ -1087,7 +1087,7 @@ function ToolStepRowImpl({
         summaryRow
       )}
       {progress.length > 0 ? (
-        <ul className="mt-1 space-y-1 pl-5" aria-label="子代理进度">
+        <ul className="mt-1 space-y-1 pl-5" aria-label="子代理進度">
           {progress.map((entry) => (
             <SubagentProgressRow key={entry.asset_id} entry={entry} />
           ))}
@@ -1238,7 +1238,8 @@ function isBackgroundActivity(message: ConsoleAssistantMessage): boolean {
   if (message.metadata.messageKind === "observation") {
     return true;
   }
-  return message.role === "assistant" && messageText(message).startsWith("后台任务已完成");
+  return message.role === "assistant" &&
+    ["后台任务已完成", "背景任務已完成"].some((prefix) => messageText(message).startsWith(prefix));
 }
 
 function isNarration(message: ConsoleAssistantMessage): boolean {
@@ -1252,7 +1253,7 @@ function findActiveToolStepId(items: TurnStreamItem[]): string | null {
       return item.step_id;
     }
     if (item.type === "stop_gate" && item.status === "checking") {
-      return "正在执行终验";
+      return "正在執行終驗";
     }
   }
   return null;
@@ -1260,28 +1261,28 @@ function findActiveToolStepId(items: TurnStreamItem[]): string | null {
 
 function turnActivityLabel(items: TurnStreamItem[], modelRetry: ModelRetryState | null): string {
   if (modelRetry) {
-    return `${modelRetry.reason}，正在重试 ${modelRetry.attempt}/${modelRetry.maxRetries}`;
+    return `${modelRetry.reason}，正在重試 ${modelRetry.attempt}/${modelRetry.maxRetries}`;
   }
   for (let index = items.length - 1; index >= 0; index -= 1) {
     const item = items[index];
     if (item.type === "tool" && item.status === "running") {
-      return `正在${TOOL_STEP_LABELS[item.tool] ?? `执行 ${item.tool}`}`;
+      return `正在${TOOL_STEP_LABELS[item.tool] ?? `執行 ${item.tool}`}`;
     }
   }
   const latest = items.at(-1);
   if (latest?.type === "message" && latest.kind === "assistant") {
-    return "正在生成回复";
+    return "正在生成回覆";
   }
   if (latest?.type === "message") {
-    return latest.kind === "narration" ? "正在继续处理" : "正在收尾";
+    return latest.kind === "narration" ? "正在繼續處理" : "正在收尾";
   }
   if (latest?.type === "tool") {
-    return "正在整理工具结果";
+    return "正在整理工具結果";
   }
   if (latest?.type === "stop_gate") {
-    return latest.status === "blocked" ? "正在根据终验反馈继续修复" : "正在整理终验结果";
+    return latest.status === "blocked" ? "正在根據終驗回饋繼續修復" : "正在整理終驗結果";
   }
-  return "正在读取上下文";
+  return "正在讀取上下文";
 }
 
 function showAssetPrefix(note: string): boolean {
@@ -1413,46 +1414,46 @@ function highlightClass(highlighted: boolean): string {
 }
 
 const TOOL_STATUS_LABELS: Record<string, string> = {
-  running: "进行中",
+  running: "進行中",
   succeeded: "完成",
-  failed: "失败",
-  rejected: "未执行",
-  validation_failed: "未执行",
-  deny: "已拒绝",
-  ask: "待确认",
+  failed: "失敗",
+  rejected: "未執行",
+  validation_failed: "未執行",
+  deny: "已拒絕",
+  ask: "待確認",
   requires_user: "待回答"
 };
 
 const TOOL_STEP_LABELS: Record<string, string> = {
-  "tool.load": "加载 Action Schema",
-  "asset.list_assets": "清点素材",
-  "asset.import_local_file": "导入本地素材",
-  "media.detect_shots": "检测镜头",
-  "shot.search": "检索镜头",
+  "tool.load": "載入 Action Schema",
+  "asset.list_assets": "清點素材",
+  "asset.import_local_file": "匯入本地素材",
+  "media.detect_shots": "偵測鏡頭",
+  "shot.search": "搜尋鏡頭",
   "speech.transcribe": "建立口播索引",
-  "speech.search": "检索口播",
-  "audio.analyze_beats": "分析音乐节拍",
-  "audio.analyze_speech_pauses": "分析口播气口",
-  "decision.answer": "记录你的回答",
-  // 此表同时保留旧工具标签用于历史轨迹回放；标签存在不代表 Registry 或 executor 仍可调用对应旧工具。
-  "timeline.apply_patch": "修改时间线",
-  "timeline.apply_patches": "批量修改时间线",
-  "timeline.insert": "插入时间线内容",
-  "timeline.delete": "删除时间线内容",
-  "timeline.update": "更新时间线目标",
-  "timeline.split": "切分时间线片段",
-  "timeline.recut_to_beats": "按节拍重剪",
-  "timeline.compose_initial": "生成初版时间线",
-  "timeline.edit_talking_head": "编辑口播视频",
-  "timeline.check": "检查时间线",
-  "timeline.inspect": "查看时间线",
-  "render.preview": "渲染预览",
-  "render.final_mp4": "导出成片",
-  "render.status": "查询渲染进度",
-  "preview.check": "检查预览",
-  "preview.generate": "生成工作预览",
-  "preview.qa_report": "汇总预览质检",
-  "stop.gate": "终验（历史记录）",
-  "interaction.ask_user": "向你提问",
-  "interaction.confirm_action": "请求确认"
+  "speech.search": "搜尋口播",
+  "audio.analyze_beats": "分析音樂節拍",
+  "audio.analyze_speech_pauses": "分析口播氣口",
+  "decision.answer": "記錄你的回答",
+  // 此表同時保留舊工具標籤用於歷史軌跡回放；標籤存在不代表 Registry 或 executor 仍可呼叫對應舊工具。
+  "timeline.apply_patch": "修改時間線",
+  "timeline.apply_patches": "批次修改時間線",
+  "timeline.insert": "插入時間線內容",
+  "timeline.delete": "刪除時間線內容",
+  "timeline.update": "更新時間線目標",
+  "timeline.split": "切分時間線片段",
+  "timeline.recut_to_beats": "按節拍重剪",
+  "timeline.compose_initial": "生成初版時間線",
+  "timeline.edit_talking_head": "編輯口播影片",
+  "timeline.check": "檢查時間線",
+  "timeline.inspect": "查看時間線",
+  "render.preview": "渲染預覽",
+  "render.final_mp4": "匯出成片",
+  "render.status": "查詢渲染進度",
+  "preview.check": "檢查預覽",
+  "preview.generate": "生成工作預覽",
+  "preview.qa_report": "彙總預覽質檢",
+  "stop.gate": "終驗（歷史紀錄）",
+  "interaction.ask_user": "向你提問",
+  "interaction.confirm_action": "請求確認"
 };

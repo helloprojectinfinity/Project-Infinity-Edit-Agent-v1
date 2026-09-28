@@ -46,14 +46,14 @@ export function BatchDeleteDraftsDialog({
             }}
           >
             <Dialog.Title className="text-lg font-semibold text-fg">
-              删除 {drafts.length} 条草稿？
+              刪除 {drafts.length} 條草稿？
             </Dialog.Title>
             <Dialog.Description className="mt-2 text-sm leading-6 text-fg-muted">
-              删除后这些草稿将不再出现在列表中，目前无法在界面中撤销。
+              刪除後這些草稿將不再出現在列表中，目前無法在介面中撤銷。
             </Dialog.Description>
 
             <div className="mt-4 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2.5">
-              <ul className="space-y-1 text-sm text-fg" aria-label="将删除的草稿">
+              <ul className="space-y-1 text-sm text-fg" aria-label="將刪除的草稿">
                 {visibleDrafts.map((draft) => (
                   <li className="truncate" key={draft.draft_id}>
                     {draft.name}
@@ -61,13 +61,13 @@ export function BatchDeleteDraftsDialog({
                 ))}
               </ul>
               {hiddenCount > 0 ? (
-                <p className="mt-1 text-xs text-fg-muted">另有 {hiddenCount} 条草稿</p>
+                <p className="mt-1 text-xs text-fg-muted">另有 {hiddenCount} 條草稿</p>
               ) : null}
             </div>
 
             {failed ? (
               <p className="mt-4 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
-                未删除任何草稿，已保留当前选择，请重试。
+                未刪除任何草稿，已保留當前選擇，請重試。
               </p>
             ) : null}
 
@@ -85,7 +85,7 @@ export function BatchDeleteDraftsDialog({
                 type="submit"
                 disabled={pending || drafts.length === 0}
               >
-                {pending ? "正在删除" : `删除 ${drafts.length} 条草稿`}
+                {pending ? "正在刪除" : `刪除 ${drafts.length} 條草稿`}
               </button>
             </div>
           </form>

@@ -14,6 +14,7 @@ workspace/
 .playwright-workspace/
 .playwright-mcp/
 .artifacts/
+.ffmpeg-probe/
 
 # JavaScript dependencies and build/test output
 node_modules/

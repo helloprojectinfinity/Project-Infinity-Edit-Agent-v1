@@ -48,10 +48,10 @@ export function useWorkspaceEvents(): ConnectionState {
 
 export function connectionLabel(state: ConnectionState): string {
   if (state === "open") {
-    return "本地已连接";
+    return "本地已連線";
   }
   if (state === "closed") {
-    return "连接中断";
+    return "連線中斷";
   }
-  return "连接中";
+  return "連線中";
 }

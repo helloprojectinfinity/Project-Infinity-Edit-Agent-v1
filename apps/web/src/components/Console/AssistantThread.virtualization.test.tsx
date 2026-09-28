@@ -87,7 +87,7 @@ describe("AssistantThread 流式渲染降级与虚拟化", () => {
   it("超过阈值的长会话切到虚拟化容器，不再把全部行铺进扁平列表", () => {
     const messages = Array.from({ length: 60 }, (_, index) => userMessage(index));
     const { container } = renderThread(messages);
-    const scroller = container.querySelector('[aria-label="消息列表"]') as HTMLElement;
+    const scroller = container.querySelector('[aria-label="訊息列表"]') as HTMLElement;
 
     // 走虚拟化路径：滚动容器内是带高度的定位占位层，而非 space-y-2.5 扁平列表。
     expect(container.querySelector(".space-y-2\\.5")).toBeNull();

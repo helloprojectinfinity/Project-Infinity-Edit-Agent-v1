@@ -22,7 +22,7 @@ describe("AffectedMemoriesCard", () => {
     expect(card.textContent).toContain("成片节奏偏快");
     expect(card.textContent).toContain("voice_pref");
     expect(card.textContent).toContain("偏好男声解说");
-    expect(card.textContent).toContain("撤回后不可恢复");
+    expect(card.textContent).toContain("撤回後不可復原");
   });
 
   it("点「撤回这些记忆」触发撤回,点「保留」触发关闭", () => {
@@ -36,7 +36,7 @@ describe("AffectedMemoriesCard", () => {
         retracting={false}
       />
     );
-    fireEvent.click(screen.getByRole("button", { name: "撤回这些记忆" }));
+    fireEvent.click(screen.getByRole("button", { name: "撤回這些記憶" }));
     expect(onRetract).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: "保留" }));
     expect(onDismiss).toHaveBeenCalledTimes(1);

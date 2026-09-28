@@ -33,7 +33,33 @@ var negatableBoundaryActions = []string{
 	"下载", "mp4", "质检", "黑帧", "静帧", "静音", "响度", "解码",
 }
 
+// Only normalize a temporary copy for boundary matching, never stored messages,
+// filenames, subtitles or tool arguments. Keep existing simplified rules valid.
+var boundaryLanguageAliases = strings.NewReplacer(
+	"唔需要", "不需要", "唔好", "不要", "毋須", "无需", "無需", "无需",
+	"暫不", "暂不", "別再", "别再", "請別", "请别",
+	"然後", "然后", "隨後", "随后", "接著", "接着",
+	"改為", "改为", "轉而", "转而", "不過", "不过",
+	"匯出", "导出", "導出", "导出", "下載", "下载", "最終", "最终",
+	"影片", "视频", "視頻", "视频", "剪接", "剪辑", "剪輯", "剪辑",
+	"預覽", "预览", "離線畫質", "离线画质", "編輯", "编辑",
+	"調整", "调整", "移動", "移动", "替換", "替换", "刪除", "删除",
+	"時間線", "时间线", "軌道", "轨道", "修復", "修复",
+	"卡點", "卡点", "踩點", "踩点", "拍點", "拍点", "節拍", "节拍",
+	"質檢", "质检", "黑幀", "黑帧", "靜幀", "静帧", "靜音", "静音",
+	"響度", "响度", "解碼", "解码", "視覺", "视觉", "畫面", "画面",
+	"裁邊", "裁边", "構圖", "构图", "調色", "调色", "顏色", "颜色",
+	"轉場", "转场", "遮擋", "遮挡", "黑邊", "黑边",
+	"直向", "纵向", "縱向", "纵向", "豎屏", "竖屏", "豎版", "竖版",
+	"橫屏", "横屏", "橫版", "横版", "橫向", "横向",
+	"就緒", "就绪", "處理", "处理", "已準備好", "已准备好",
+	"已經", "已经", "無法", "无法", "執行失敗", "执行失败",
+	"還需要", "还需要", "用戶", "用户", "未達到", "未达到",
+	"終驗未通過", "终验未通过", "未通過", "未通过",
+)
+
 func withoutNegatedBoundaryActions(text string) string {
+	text = boundaryLanguageAliases.Replace(text)
 	var positive strings.Builder
 	for index := 0; index < len(text); {
 		matched := ""
@@ -132,6 +158,7 @@ func hasUserFinalExportOnlyIntent(text string) bool {
 }
 
 func containsBoundaryKeyword(text string, keywords ...string) bool {
+	text = boundaryLanguageAliases.Replace(text)
 	for _, keyword := range keywords {
 		if strings.Contains(text, keyword) {
 			return true

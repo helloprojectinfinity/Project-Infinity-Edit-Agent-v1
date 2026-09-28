@@ -76,10 +76,10 @@ export function DecisionInteractionGroup({
   const answeredCount = items.filter((item) => item.status === "answered").length;
   const summary =
     pendingCount > 0
-      ? `${pendingCount} 个问题待回答`
+      ? `${pendingCount} 個問題待回答`
       : answeredCount > 0
-        ? `已回答 ${answeredCount} 个问题`
-        : "确认已结束";
+        ? `已回答 ${answeredCount} 個問題`
+        : "確認已結束";
 
   return (
     <section
@@ -139,10 +139,10 @@ function DecisionQuestion({
   const isLoadingDecision = isPending && !decision;
   const placeholderTitle =
     item.status === "pending"
-      ? "正在同步确认项"
+      ? "正在同步確認項"
       : item.status === "answered"
-        ? "回答已记录"
-        : "确认项已取消";
+        ? "回答已記錄"
+        : "確認項已取消";
   const loadingSeconds = useElapsedSeconds(isLoadingDecision);
   const disabled = !isPending || answerPending || !decision;
   const answer = item.answer ?? decision?.answer ?? null;
@@ -175,7 +175,7 @@ function DecisionQuestion({
         <span
           className="mt-0.5 w-10 shrink-0 text-2xs font-medium leading-5 tabular-nums text-fg-faint"
         >
-          问题 {index}
+          問題 {index}
         </span>
         <div className="min-w-0 flex-1">
           <h3
@@ -192,7 +192,7 @@ function DecisionQuestion({
                 <div
                   className="divide-y divide-line overflow-hidden rounded-sm border border-line-strong bg-panel"
                   role="group"
-                  aria-label="确认选项"
+                  aria-label="確認選項"
                 >
                   {decision.options.map((option) => {
                     const selected = isSelectedOption(decision, answer, option);
@@ -268,10 +268,10 @@ function DecisionQuestion({
                 aria-hidden
                 className="shrink-0 animate-spin text-accent"
               />
-              <span className="min-w-0 flex-1">正在读取可选项</span>
+              <span className="min-w-0 flex-1">正在讀取可選項</span>
               <time
                 className="shrink-0 font-mono text-2xs tabular-nums text-fg-faint"
-                aria-label={`已用时 ${loadingSeconds} 秒`}
+                aria-label={`已用時 ${loadingSeconds} 秒`}
               >
                 已用 {formatElapsedTime(loadingSeconds)}
               </time>
@@ -285,7 +285,7 @@ function DecisionQuestion({
                 回答
               </span>
               <p className="mt-0.5 min-w-0 break-words whitespace-pre-wrap text-[13px] leading-5 text-fg">
-                {answerLabel ?? "回答已记录"}
+                {answerLabel ?? "回答已記錄"}
               </p>
             </div>
           ) : (
@@ -323,7 +323,7 @@ function ProgressRow({
         {view.active ? (
           <time
             className="shrink-0 font-mono text-2xs tabular-nums text-fg-faint"
-            aria-label={`已用时 ${elapsedSeconds} 秒`}
+            aria-label={`已用時 ${elapsedSeconds} 秒`}
           >
             已用 {formatElapsedTime(elapsedSeconds)}
           </time>
@@ -349,7 +349,7 @@ function ProgressRow({
       <div
         className="ml-3 mt-1 h-px overflow-hidden bg-line"
         role="progressbar"
-        aria-label={`${item.job_kind} 进度`}
+        aria-label={`${item.job_kind} 進度`}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={view.percent}
@@ -384,7 +384,7 @@ function progressRowView(item: ProgressInteractionItem): ProgressRowView {
       };
     case "failed":
       return {
-        statusText: "失败",
+        statusText: "失敗",
         percent: item.progress ?? 0,
         toneClass: "text-danger",
         barClass: "bg-danger",
@@ -402,7 +402,7 @@ function progressRowView(item: ProgressInteractionItem): ProgressRowView {
       };
     case "queued":
       return {
-        statusText: "排队中",
+        statusText: "排隊中",
         percent: item.progress ?? 0,
         toneClass: "text-info",
         barClass: "bg-accent",
@@ -411,7 +411,7 @@ function progressRowView(item: ProgressInteractionItem): ProgressRowView {
       };
     default:
       return {
-        statusText: "处理中",
+        statusText: "處理中",
         percent: item.progress ?? 0,
         toneClass: "text-info",
         barClass: "bg-accent",
@@ -431,12 +431,12 @@ function ErrorRow({ item }: { item: ErrorInteractionItem }): ReactElement {
       <div className="flex min-w-0 items-start gap-1.5">
         <CircleAlert size={13} strokeWidth={1.8} aria-hidden className="mt-0.5 shrink-0 text-danger" />
         <p className="min-w-0 flex-1 leading-5 text-danger">
-          <span className="font-medium">执行失败</span>
+          <span className="font-medium">執行失敗</span>
           <span className="ml-1 font-mono text-2xs text-fg-faint">{item.error_code}</span>
           <span className="block text-fg-muted">{item.message}</span>
         </p>
         <span className="shrink-0 text-2xs text-danger">
-          {item.retryable ? "可重试" : "需调整"}
+          {item.retryable ? "可重試" : "需調整"}
         </span>
       </div>
     </div>
@@ -467,7 +467,7 @@ function UnknownRow({ item }: { item: UnknownInteractionItem }): ReactElement {
     <details className="group text-xs text-fg-muted" data-layout="inline">
       <summary className="-ml-1 inline-flex h-5 cursor-pointer list-none items-center gap-1.5 rounded-sm px-1 transition-colors duration-fast hover:bg-hover [&::-webkit-details-marker]:hidden">
         <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-warn" />
-        未知结构化事件：{item.eventName}
+        未知結構化事件：{item.eventName}
         <ChevronRight size={12} strokeWidth={1.8} aria-hidden className="transition-transform duration-base group-open:rotate-90" />
       </summary>
       <pre className="mt-1 max-h-40 overflow-auto border-l-2 border-line-strong/50 pl-3 font-mono text-2xs leading-4 text-fg-muted">

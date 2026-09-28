@@ -43,6 +43,19 @@ port_in_use() {
 
 load_dotenv "$ROOT/.env"
 
+# 优先使用 ffmpeg-full（含 libass／freetype／harfbuzz 等字幕与文字渲染依赖），
+# 解决 brew keg-only 不写入 PATH 的问题；找不到时退回系统 ffmpeg 并给出警告。
+FFMPEG_FULL_BIN="$(brew --prefix ffmpeg-full 2>/dev/null || true)/bin"
+if [[ -x "$FFMPEG_FULL_BIN/ffmpeg" && -x "$FFMPEG_FULL_BIN/ffprobe" ]]; then
+  if ! "$FFMPEG_FULL_BIN/ffmpeg" -hide_banner -filters 2>&1 | grep -qE ' [.]+ subtitles '; then
+    printf '\033[31m错误：%s 缺少 subtitles filter；请重新执行 brew install ffmpeg-full 后再启动。\033[0m\n' "$FFMPEG_FULL_BIN/ffmpeg" >&2
+    exit 1
+  fi
+  export PATH="$FFMPEG_FULL_BIN:$PATH"
+else
+  printf '\033[33m警告：未检测到 ffmpeg-full；subtitles 字幕渲染可能不可用。请执行 brew install ffmpeg-full。\033[0m\n' >&2
+fi
+
 persist_generated_token() {
   local env_file="$1"
   local token="$2"
@@ -105,6 +118,8 @@ if [[ "$CHAT_PROVIDER" == "dashscope" && -z "${RUSHES_DASHSCOPE_API_KEY:-}" ]]; 
   printf '\033[33m警告：未配置 RUSHES_DASHSCOPE_API_KEY；本地链路可运行，但 Agent 会使用无模型降级回复。\033[0m\n' >&2
 elif [[ "$CHAT_PROVIDER" == "ark" && -z "${RUSHES_ARK_API_KEY:-}" && ( -z "${RUSHES_ARK_ACCESS_KEY:-}" || -z "${RUSHES_ARK_SECRET_KEY:-}" ) ]]; then
   printf '\033[33m警告：RUSHES_CHAT_PROVIDER=ark 但未配置 RUSHES_ARK_API_KEY（或 AK/SK）；API 与 worker 会在启动期报错。\033[0m\n' >&2
+elif [[ "$CHAT_PROVIDER" == "openrouter" && -z "${RUSHES_OPENROUTER_API_KEY:-}" ]]; then
+  printf '\033[33m警告：RUSHES_CHAT_PROVIDER=openrouter 但未配置 RUSHES_OPENROUTER_API_KEY；API 与 worker 会在启动期报错。\033[0m\n' >&2
 fi
 
 mkdir -p "$BIN_DIR"

@@ -171,7 +171,7 @@ func TestModelRetryReporterPublishesTurnStreamState(t *testing.T) {
 	events := service.hub.Snapshot("draft_retry_event")
 	if len(events) != 1 || events[0]["type"] != "model_retry" ||
 		events[0]["attempt"] != 1 || events[0]["max_retries"] != 1 ||
-		events[0]["reason"] != "模型响应超时" || events[0]["next_delay_ms"] != int64(375) {
+		events[0]["reason"] != "模型回應逾時" || events[0]["next_delay_ms"] != int64(375) {
 		t.Fatalf("events=%#v", events)
 	}
 }
@@ -353,8 +353,8 @@ func TestTerminalFailureReplyClassifiesTimeoutWithoutAnotherModelCall(t *testing
 	content := terminalFailureReply(t.Context(), &modelResponseTimeoutError{
 		Retries: maxModelTimeoutRetries, LastErr: context.DeadlineExceeded,
 	})
-	if !strings.Contains(content, "模型响应超时") || !strings.Contains(content, "自动重试 5 次") ||
-		!strings.Contains(content, "当前最新时间线") {
+	if !strings.Contains(content, "模型回應逾時") || !strings.Contains(content, "自動重試 5 次") ||
+		!strings.Contains(content, "目前最新時間線") {
 		t.Fatalf("timeout content=%q", content)
 	}
 }
@@ -362,7 +362,7 @@ func TestTerminalFailureReplyClassifiesTimeoutWithoutAnotherModelCall(t *testing
 func TestModelRetryHelpersCoverTimeoutKindsAndBackoff(t *testing.T) {
 	t.Parallel()
 	timeoutErr := &modelResponseTimeoutError{Retries: 5, LastErr: context.DeadlineExceeded}
-	if timeoutErr.Error() != "模型响应超时（已自动重试 5 次）" ||
+	if timeoutErr.Error() != "模型回應逾時（已自動重試 5 次）" ||
 		!errors.Is(timeoutErr, context.DeadlineExceeded) {
 		t.Fatalf("timeout error=%v", timeoutErr)
 	}
@@ -707,7 +707,7 @@ func TestContextLengthErrorExhaustsAsContextLengthError(t *testing.T) {
 	if !errors.As(err, &contextErr) || contextErr.Retries != maxModelTimeoutRetries {
 		t.Fatalf("耗尽重试后应返回 context-length 终态: %#v", err)
 	}
-	if contextErr.Error() != "模型上下文超出上限（已自动压缩重试 5 次）" || !errors.Is(contextErr, providerErr) {
+	if contextErr.Error() != "模型上下文超出上限（已自動壓縮重試 5 次）" || !errors.Is(contextErr, providerErr) {
 		t.Fatalf("终态文案或 unwrap 错误: %v", contextErr)
 	}
 	if stub.calls != maxModelTimeoutRetries+1 {
@@ -759,7 +759,7 @@ func TestClassifyRetryableModelErrorDistinguishesReasons(t *testing.T) {
 	if classifyRetryableModelError(cancelled, contextErr) != modelRetryReasonNone {
 		t.Fatal("已取消的 context 不应触发 context-length 重试")
 	}
-	if modelRetryReasonTimeout.label() != "模型响应超时" ||
+	if modelRetryReasonTimeout.label() != "模型回應逾時" ||
 		modelRetryReasonContextLength.label() != "上下文超出模型上限" {
 		t.Fatal("重试原因中文文案错误")
 	}
@@ -797,9 +797,9 @@ func TestTerminalFailureReplyClassifiesContextLengthWithoutAnotherModelCall(t *t
 	content := terminalFailureReply(t.Context(), &modelContextLengthError{
 		Retries: maxModelTimeoutRetries, LastErr: errors.New("context_length_exceeded"),
 	})
-	if !strings.Contains(content, "上下文超出了模型长度上限") ||
-		!strings.Contains(content, "压缩并重试 5 次") ||
-		!strings.Contains(content, "当前最新时间线") {
+	if !strings.Contains(content, "上下文超出模型長度上限") ||
+		!strings.Contains(content, "壓縮並重試 5 次") ||
+		!strings.Contains(content, "目前最新時間線") {
 		t.Fatalf("context content=%q", content)
 	}
 }

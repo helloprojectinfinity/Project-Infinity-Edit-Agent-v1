@@ -236,7 +236,7 @@ func (exec *Executor) toolDeepSearchShots(
 	output := rushestools.ShotDeepSearchResult{
 		Status: string(rushestools.StatusSucceeded), Query: input.Query,
 		IndexSnapshotID: input.IndexSnapshotID,
-		AnalyzerVersion: understanding.DeepShotAnalyzerVersion,
+		AnalyzerVersion: exec.analyzer.DeepShotAnalyzerVersion(),
 		Candidates:      results, TotalCandidates: total, ReturnedCandidates: len(results),
 		NewFrameCount: newFrameCount, ReusedFrameCount: reusedFrameCount,
 		CacheHit: newFrameCount == 0,
@@ -580,7 +580,7 @@ func (exec *Executor) inspectAndPersistDeepShot(
 	}
 	identity, err := newAssetAnalysisIdentity(
 		candidate.asset.Hash, understanding.DeepShotAnalysisType,
-		understanding.DeepShotAnalyzerVersion,
+		exec.analyzer.DeepShotAnalyzerVersion(),
 		map[string]any{
 			"shot_id":            candidate.shot.ShotID,
 			"source_start_frame": candidate.shot.SourceStartFrame,

@@ -633,9 +633,9 @@ func stopGateNotCompletedReply(pending stopGatePending) string {
 			parts = append(parts, message)
 		}
 	}
-	detail := "Stop Gate 终验尚未通过"
+	detail := "Stop Gate 最終檢查尚未通過"
 	if pending.Decision == "hook_error" {
-		detail = "Stop Gate 终验程序未能完成"
+		detail = "Stop Gate 最終檢查程序未能完成"
 		if pending.HookError != "" {
 			parts = append(parts, agentexec.TruncateText(pending.HookError, 240))
 		}
@@ -643,7 +643,7 @@ func stopGateNotCompletedReply(pending stopGatePending) string {
 	if len(parts) > 0 {
 		detail += "：" + strings.Join(parts, "；")
 	}
-	return "本回合未达到可交付状态。已成功提交的时间线修改均已保留；" + detail + "。"
+	return "本回合未達到可交付狀態。已成功提交的時間線修改均已保留；" + detail + "。"
 }
 
 func previewReportActionableIssues(report PreviewQAReport) []map[string]any {
@@ -836,7 +836,7 @@ func (service *Service) executeAutomaticPreviewQA(
 		report.Errors = append(report.Errors, map[string]string{
 			"error_code": string(code), "message": err.Error(),
 		})
-		report.Summary = "当前草稿没有可供 Preview QA 验收的时间线。"
+		report.Summary = "目前草稿沒有可供 Preview QA 驗收的時間線。"
 		service.recordAutomaticPreviewQAReportStep(ctx, draftID, startedAt, report)
 		return report
 	}
@@ -853,7 +853,7 @@ func (service *Service) executeAutomaticPreviewQA(
 				report.TimelineID, document.TimelineID,
 			),
 		})
-		report.Summary = "终验期间时间线版本已变化；旧版本预览不得验收新版本。"
+		report.Summary = "最終檢查期間時間線版本已變更；舊版本預覽不能用於驗收新版本。"
 		service.recordAutomaticPreviewQAReportStep(ctx, draftID, startedAt, report)
 		return report
 	}
@@ -876,13 +876,13 @@ func (service *Service) executeAutomaticPreviewQA(
 		report.Errors = append(report.Errors, map[string]string{
 			"error_code": string(rushestools.ErrCodePreviewQATimelineCheck), "message": err.Error(),
 		})
-		report.Summary = "Harness 未能完成精确版本的 timeline.check，未生成预览。"
+		report.Summary = "Harness 未能完成確切版本的 timeline.check，未生成預覽。"
 		service.recordAutomaticPreviewQAReportStep(ctx, draftID, startedAt, report)
 		return report
 	}
 	if check.Status != string(rushestools.StatusSucceeded) {
 		report.Status = "validation_failed"
-		report.Summary = "精确版本 timeline.check 未通过，未生成预览；时间线保持不变。"
+		report.Summary = "確切版本 timeline.check 未通過，未生成預覽；時間線保持不變。"
 		service.recordAutomaticPreviewQAReportStep(ctx, draftID, startedAt, report)
 		return report
 	}
@@ -892,7 +892,7 @@ func (service *Service) executeAutomaticPreviewQA(
 		rushestools.PreviewGenerateInput{
 			TimelineID: document.TimelineID, Orientation: orientation,
 		},
-		"正在为精确时间线版本生成工作预览", "", "",
+		"正在為確切時間線版本生成工作預覽", "", "",
 	)
 	generated, generatedOK := terminalTruthToolResult(generatedRaw)
 	if generateErr != nil || !generatedOK ||
@@ -907,7 +907,7 @@ func (service *Service) executeAutomaticPreviewQA(
 		report.Errors = append(report.Errors, map[string]string{
 			"error_code": string(rushestools.ErrCodePreviewQARender), "message": message,
 		})
-		report.Summary = "工作预览生成失败；失败未修改时间线。"
+		report.Summary = "工作預覽生成失敗；失敗未修改時間線。"
 		service.recordAutomaticPreviewQAReportStep(ctx, draftID, startedAt, report)
 		return report
 	}
@@ -928,7 +928,7 @@ func (service *Service) executeAutomaticPreviewQA(
 			raw, checkErr := service.executeHarnessOwnedPreviewStep(
 				ctx, draftID, "preview.check",
 				rushestools.PreviewCheckInput{PreviewID: report.PreviewID, Check: checkName},
-				"正在执行预览检查："+checkName, report.PreviewID, checkName,
+				"正在執行預覽檢查："+checkName, report.PreviewID, checkName,
 			)
 			if checkErr != nil {
 				outcomes[index].err = checkErr
@@ -963,7 +963,7 @@ func (service *Service) executeAutomaticPreviewQA(
 		raw, visualErr := service.executeHarnessOwnedPreviewStep(
 			ctx, draftID, "preview.check",
 			rushestools.PreviewCheckInput{PreviewID: report.PreviewID, Check: "visual"},
-			"正在执行按需视觉建议检查", report.PreviewID, "visual",
+			"正在執行按需視覺建議檢查", report.PreviewID, "visual",
 		)
 		if visualErr != nil {
 			report.Degraded = true
@@ -986,18 +986,18 @@ func (service *Service) executeAutomaticPreviewQA(
 
 	if coreErrors > 0 || len(report.CoreChecks) != len(automaticPreviewCoreChecks) {
 		report.Status = "check_failed"
-		report.Summary = "工作预览已生成，但至少一项 Harness 检查未能完成；时间线保持不变。"
+		report.Summary = "工作預覽已生成，但至少一項 Harness 檢查未能完成；時間線保持不變。"
 	} else {
 		report.Status = "succeeded"
 		// visual 是建议性证据；只有五项核心信号检查中的 error 才阻断通过。
 		report.Passed = !coreBlocking
 		switch {
 		case len(report.Issues) == 0:
-			report.Summary = "工作预览通过五项并行信号检查；没有发现问题。"
+			report.Summary = "工作預覽通過五項並行訊號檢查；沒有發現問題。"
 		case report.Passed:
-			report.Summary = fmt.Sprintf("工作预览检查完成：发现 %d 项非阻断提示。", len(report.Issues))
+			report.Summary = fmt.Sprintf("工作預覽檢查完成：發現 %d 項非阻斷提示。", len(report.Issues))
 		default:
-			report.Summary = fmt.Sprintf("工作预览检查完成：发现 %d 项提示，其中包含阻断错误。", len(report.Issues))
+			report.Summary = fmt.Sprintf("工作預覽檢查完成：發現 %d 項提示，其中包含阻斷錯誤。", len(report.Issues))
 		}
 	}
 	service.recordAutomaticPreviewQAReportStep(ctx, draftID, startedAt, report)
@@ -1078,7 +1078,7 @@ func (service *Service) recordAutomaticPreviewQAReportStep(
 	})
 	service.hub.Record(draftID, StreamEvent{
 		"type": TurnStreamToolStepProgress, "step_id": stepID, "tool": "preview.qa_report",
-		"harness_owned": true, "progress": 0.5, "note": "正在汇总 PreviewQAReport",
+		"harness_owned": true, "progress": 0.5, "note": "正在彙總 PreviewQAReport",
 	})
 	status := "succeeded"
 	if report.Status != "succeeded" {

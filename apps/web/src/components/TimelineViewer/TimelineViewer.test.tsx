@@ -49,7 +49,7 @@ describe("TimelineViewer", () => {
 
     render(<TimelineViewer timeline={timeline} />);
 
-    expect(screen.getByRole("button", { name: "主视频片段 海边日落人物" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "主影片片段 海边日落人物" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /asset_a/ })).toBeNull();
   });
 
@@ -83,7 +83,7 @@ describe("TimelineViewer", () => {
     const onSeek = vi.fn();
     render(<TimelineViewer timeline={timelineFixture()} pxPerSec={60} onSeek={onSeek} />);
 
-    const timeline = screen.getByRole("img", { name: "时间线轨道图" });
+    const timeline = screen.getByRole("img", { name: "時間線軌道圖" });
     fireEvent.pointerDown(timeline, {
       button: 0,
       pointerId: 1,
@@ -105,7 +105,7 @@ describe("TimelineViewer", () => {
       />
     );
 
-    fireEvent.pointerDown(screen.getByRole("img", { name: "时间线轨道图" }), {
+    fireEvent.pointerDown(screen.getByRole("img", { name: "時間線軌道圖" }), {
       button: 0,
       pointerId: 3,
       clientX: 210
@@ -146,7 +146,7 @@ describe("TimelineViewer", () => {
   it("拖动时逐指针事件更新播放头，并在松开时提交最终时间", () => {
     const onSeek = vi.fn();
     render(<TimelineViewer timeline={timelineFixture()} pxPerSec={60} onSeek={onSeek} />);
-    const timeline = screen.getByRole("img", { name: "时间线轨道图" });
+    const timeline = screen.getByRole("img", { name: "時間線軌道圖" });
 
     fireEvent.pointerDown(timeline, { button: 0, pointerId: 7, clientX: 30 });
     fireEvent.pointerMove(timeline, { pointerId: 7, clientX: 120 });
@@ -234,7 +234,7 @@ describe("TimelineViewer", () => {
         onMoveClip={onMoveClip}
       />
     );
-    const svg = screen.getByRole("img", { name: "时间线轨道图" });
+    const svg = screen.getByRole("img", { name: "時間線軌道圖" });
     vi.spyOn(svg, "getBoundingClientRect").mockReturnValue({
       x: 0,
       y: 0,
@@ -246,7 +246,7 @@ describe("TimelineViewer", () => {
       height: 190,
       toJSON: () => ({})
     });
-    const audioClip = screen.getByRole("button", { name: /原声片段/ });
+    const audioClip = screen.getByRole("button", { name: /原聲片段/ });
 
     fireEvent.pointerDown(audioClip, { pointerId: 1, clientX: 0, clientY: 86 });
     // 28 帧的原始位移离 60 帧片段边缘只有 4px，8px 阈值内吸附到 30 帧。
@@ -265,10 +265,10 @@ describe("TimelineViewer", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "原声静音" }));
-    fireEvent.click(screen.getByRole("button", { name: "原声独奏" }));
-    fireEvent.click(screen.getByRole("button", { name: "原声锁定" }));
-    const gain = screen.getByRole("slider", { name: "原声轨道音量" });
+    fireEvent.click(screen.getByRole("button", { name: "原聲靜音" }));
+    fireEvent.click(screen.getByRole("button", { name: "原聲獨奏" }));
+    fireEvent.click(screen.getByRole("button", { name: "原聲鎖定" }));
+    const gain = screen.getByRole("slider", { name: "原聲軌道音量" });
     fireEvent.change(gain, { target: { value: "-8" } });
     fireEvent.pointerUp(gain);
 
@@ -304,10 +304,10 @@ describe("TimelineViewer", () => {
 
     render(<TimelineViewer timeline={timeline} />);
 
-    expect(screen.getByText("主视频")).toBeTruthy();
-    expect(screen.getByText("音乐")).toBeTruthy();
+    expect(screen.getByText("主影片")).toBeTruthy();
+    expect(screen.getByText("音樂")).toBeTruthy();
     expect(screen.queryByText("叠加")).toBeNull();
-    expect(screen.queryByText("原声")).toBeNull();
+    expect(screen.queryByText("原聲")).toBeNull();
     expect(screen.queryByText("配音")).toBeNull();
     expect(screen.getByText("音效")).toBeTruthy();
     expect(screen.getByText("V1")).toBeTruthy();
@@ -343,7 +343,7 @@ describe("TimelineViewer", () => {
 
     const markers = screen.getByTestId("timeline-beat-markers");
     expect(markers.querySelectorAll(":scope > g")).toHaveLength(3);
-    expect(screen.getByText(/小节强拍/)).toBeTruthy();
+    expect(screen.getByText(/小節強拍/)).toBeTruthy();
   });
 
   it("兼容旧 effects beat_grid，并让 metadata 拍点进入吸附候选", () => {
@@ -382,12 +382,12 @@ describe("TimelineViewer", () => {
       />
     );
     expect(screen.getAllByTestId("timeline-beat-markers")).toHaveLength(2);
-    const svg = screen.getByRole("img", { name: "时间线轨道图" });
+    const svg = screen.getByRole("img", { name: "時間線軌道圖" });
     vi.spyOn(svg, "getBoundingClientRect").mockReturnValue({
       x: 0, y: 0, left: 0, top: 0, right: 240, bottom: 250,
       width: 240, height: 250, toJSON: () => ({})
     });
-    const audioClip = screen.getByRole("button", { name: /原声片段/ });
+    const audioClip = screen.getByRole("button", { name: /原聲片段/ });
 
     // 原始目标为 35 帧；37 帧拍点距离 4px，其他刻度/边缘均超过 8px 阈值。
     fireEvent.pointerDown(audioClip, { pointerId: 9, clientX: 0, clientY: 86 });
@@ -400,8 +400,8 @@ describe("TimelineViewer", () => {
   it("后端旧数据缺少音轨节点时也会补齐音乐和音效轨", () => {
     render(<TimelineViewer timeline={timelineFixture()} />);
 
-    expect(screen.getByText("主视频")).toBeTruthy();
-    expect(screen.getByText("音乐")).toBeTruthy();
+    expect(screen.getByText("主影片")).toBeTruthy();
+    expect(screen.getByText("音樂")).toBeTruthy();
     expect(screen.getByText("音效")).toBeTruthy();
   });
 

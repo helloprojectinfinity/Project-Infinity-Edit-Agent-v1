@@ -17,7 +17,7 @@ export function StatusBadge({ label, tone = "neutral" }: StatusBadgeProps): Reac
   );
 }
 
-// 素材理解状态 → 徽标文案与色调（Spec C：none/running/ready/failed）。
+// 素材理解狀態 → 徽標文案與色調（Spec C：none/running/ready/failed）。
 export function understandingBadgeProps(status: string): { label: string; tone: StatusTone } {
   if (status === "ready") {
     return { label: "已理解", tone: "success" };
@@ -26,7 +26,7 @@ export function understandingBadgeProps(status: string): { label: string; tone: 
     return { label: "理解中", tone: "info" };
   }
   if (status === "failed") {
-    return { label: "理解失败", tone: "danger" };
+    return { label: "理解失敗", tone: "danger" };
   }
   return { label: "未理解", tone: "neutral" };
 }

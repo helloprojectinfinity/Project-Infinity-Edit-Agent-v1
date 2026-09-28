@@ -116,7 +116,7 @@ export function DraftsHomePage(): ReactElement {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-xl font-semibold">草稿</h1>
-            <p className="mt-1 text-sm text-fg-muted">每个草稿是一次创作：把一堆素材聊成一条成片。</p>
+            <p className="mt-1 text-sm text-fg-muted">每個草稿是一次創作：把一堆素材聊成一條成片。</p>
           </div>
           {!batchMode ? (
             <div className="flex items-center gap-2">
@@ -127,7 +127,7 @@ export function DraftsHomePage(): ReactElement {
                   onClick={() => setBatchMode(true)}
                 >
                   <ListChecks size={16} strokeWidth={1.75} aria-hidden />
-                  批量管理
+                  批次管理
                 </button>
               ) : null}
               <button
@@ -136,7 +136,7 @@ export function DraftsHomePage(): ReactElement {
                 onClick={startCreation}
                 disabled={createMutation.isPending}
               >
-                {createMutation.isPending ? "创建中" : "开始创作"}
+                {createMutation.isPending ? "建立中" : "開始創作"}
               </button>
             </div>
           ) : null}
@@ -147,18 +147,18 @@ export function DraftsHomePage(): ReactElement {
             <div
               className="sticky top-2 z-20 mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-raised px-3 py-2 shadow-pop"
               role="toolbar"
-              aria-label="草稿批量管理"
+              aria-label="草稿批次管理"
             >
               <span className="inline-flex min-w-32 items-center gap-2 text-sm text-fg-muted" aria-live="polite">
                 <ListChecks size={16} strokeWidth={1.75} aria-hidden />
-                已选择 <strong className="font-semibold text-fg">{selectedDrafts.length}</strong> 条
+                已選擇 <strong className="font-semibold text-fg">{selectedDrafts.length}</strong> 條
               </span>
               <button
                 className="rounded-md px-3 py-1.5 text-sm text-fg-muted transition-colors ease-standard hover:bg-hover hover:text-fg"
                 type="button"
                 onClick={toggleSelectAll}
               >
-                {allDraftsSelected ? "取消全选" : "全选"}
+                {allDraftsSelected ? "取消全選" : "全選"}
               </button>
               <div className="min-w-4 flex-1" />
               <button
@@ -178,15 +178,15 @@ export function DraftsHomePage(): ReactElement {
                 }}
               >
                 <Trash2 size={15} strokeWidth={1.75} aria-hidden />
-                删除所选
+                刪除所選
               </button>
             </div>
           ) : null}
           {draftsQuery.isLoading ? (
-            <p className="text-sm text-fg-muted">正在读取草稿</p>
+            <p className="text-sm text-fg-muted">正在讀取草稿</p>
           ) : draftsQuery.error ? (
             <p className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
-              草稿列表加载失败
+              草稿列表載入失敗
             </p>
           ) : drafts.length === 0 ? (
             <button
@@ -195,8 +195,8 @@ export function DraftsHomePage(): ReactElement {
               onClick={startCreation}
               disabled={createMutation.isPending}
             >
-              <span className="text-base font-medium text-fg">还没有草稿</span>
-              <span className="mt-2 text-sm text-fg-muted">点「开始创作」，导入素材聊成一条成片。</span>
+              <span className="text-base font-medium text-fg">還沒有草稿</span>
+              <span className="mt-2 text-sm text-fg-muted">點「開始創作」，匯入素材聊成一條成片。</span>
             </button>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -268,7 +268,7 @@ function DraftCard({
             className="block w-full text-left"
             type="button"
             onClick={selectionMode ? onToggleSelection : onOpen}
-            aria-label={selectionMode ? `${selected ? "取消选择" : "选择"}草稿 ${draft.name}` : undefined}
+            aria-label={selectionMode ? `${selected ? "取消選擇" : "選擇"}草稿 ${draft.name}` : undefined}
             aria-pressed={selectionMode ? selected : undefined}
           >
             <div className="grid aspect-video grid-cols-2 grid-rows-2 gap-px overflow-hidden rounded-t-lg bg-ink">
@@ -291,7 +291,7 @@ function DraftCard({
             <div className="px-4 py-3">
               <span className="block truncate text-sm font-semibold text-fg">{draft.name}</span>
               <span className="mt-1 block text-xs text-fg-muted">
-                {draft.material_count} 个素材 · {formatDate(draft.updated_at)}
+                {draft.material_count} 個素材 · {formatDate(draft.updated_at)}
               </span>
             </div>
           </button>
@@ -349,7 +349,7 @@ function DraftCard({
   );
 }
 
-/** 卡片菜单三项（重命名/复制/删除）：DropdownMenu 与 ContextMenu 共用，避免两处漂移。 */
+/** 卡片選單三項（重新命名/複製/刪除）：DropdownMenu 與 ContextMenu 共用，避免兩處漂移。 */
 const MENU_CONTENT_CLASS =
   "rx-menu z-40 min-w-[9rem] overflow-hidden rounded-lg bg-raised p-1 text-sm shadow-pop";
 const MENU_ITEM_CLASS =
@@ -368,15 +368,15 @@ function DraftMenuItems({
     <>
       <Item className={MENU_ITEM_CLASS} onSelect={() => onAction("renameDraft")}>
         <PencilLine size={16} strokeWidth={1.75} aria-hidden />
-        重命名
+        重新命名
       </Item>
       <Item className={MENU_ITEM_CLASS} onSelect={() => onAction("copyDraft")}>
         <Copy size={16} strokeWidth={1.75} aria-hidden />
-        复制
+        複製
       </Item>
       <Item className={MENU_ITEM_DANGER_CLASS} onSelect={() => onAction("deleteDraft")}>
         <Trash2 size={16} strokeWidth={1.75} aria-hidden />
-        删除
+        刪除
       </Item>
     </>
   );

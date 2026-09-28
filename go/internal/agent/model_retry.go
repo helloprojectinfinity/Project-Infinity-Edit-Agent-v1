@@ -29,7 +29,7 @@ type modelResponseTimeoutError struct {
 }
 
 func (err *modelResponseTimeoutError) Error() string {
-	return fmt.Sprintf("模型响应超时（已自动重试 %d 次）", err.Retries)
+	return fmt.Sprintf("模型回應逾時（已自動重試 %d 次）", err.Retries)
 }
 
 func (err *modelResponseTimeoutError) Unwrap() error { return err.LastErr }
@@ -41,7 +41,7 @@ type modelContextLengthError struct {
 }
 
 func (err *modelContextLengthError) Error() string {
-	return fmt.Sprintf("模型上下文超出上限（已自动压缩重试 %d 次）", err.Retries)
+	return fmt.Sprintf("模型上下文超出上限（已自動壓縮重試 %d 次）", err.Retries)
 }
 
 func (err *modelContextLengthError) Unwrap() error { return err.LastErr }
@@ -59,7 +59,7 @@ func (reason modelRetryReason) label() string {
 	if reason == modelRetryReasonContextLength {
 		return "上下文超出模型上限"
 	}
-	return "模型响应超时"
+	return "模型回應逾時"
 }
 
 type modelRetryNotice struct {

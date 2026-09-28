@@ -82,7 +82,7 @@ describe("DiffusionPreviewPlayer", () => {
       expect(document.querySelector('[data-preview-engine="ffmpeg-current-version"]')).toBeTruthy();
     });
     expect(screen.getByTestId("ffmpeg-preview").textContent).toBe("/preview.mp4");
-    expect(screen.getByText("当前时间线 · 稳定预览")).toBeTruthy();
+    expect(screen.getByText("目前時間線 · 穩定預覽")).toBeTruthy();
     expect(diffusionMock.instances).toHaveLength(0);
   });
 
@@ -90,16 +90,16 @@ describe("DiffusionPreviewPlayer", () => {
     render(<DiffusionPreviewPlayer timeline={timeline} />);
 
     expect(
-      await screen.findByText("当前浏览器无法启动编辑代理预览；最终导出仍会读取原素材。")
+      await screen.findByText("目前瀏覽器無法啟動編輯代理預覽；最終匯出仍會讀取原素材。")
     ).toBeTruthy();
-    expect(screen.queryByText("正在准备本地即时预览…")).toBeNull();
+    expect(screen.queryByText("正在準備本地即時預覽…")).toBeNull();
   });
 
   it("拖动时先更新进度和时间码，不等待解码器 seek 完成", async () => {
     setLocalPreviewSupport(true);
     render(<DiffusionPreviewPlayer timeline={timeline} />);
 
-    const scrubber = await screen.findByRole("slider", { name: "预览进度" });
+    const scrubber = await screen.findByRole("slider", { name: "預覽進度" });
     const engine = diffusionMock.instances[0];
     engine.seekFrame.mockImplementationOnce(() => new Promise<void>(() => undefined));
 
@@ -172,7 +172,7 @@ describe("PreviewScrubber", () => {
     );
 
     const hitArea = screen.getByTestId("preview-scrubber-hit-area");
-    const input = screen.getByRole("slider", { name: "预览进度" });
+    const input = screen.getByRole("slider", { name: "預覽進度" });
     expect(hitArea.className).toContain("h-5");
     expect(input.className).toContain("h-full");
     expect(screen.getByTestId("preview-scrubber-progress").style.width).toBe("25%");
@@ -191,7 +191,7 @@ describe("PreviewScrubber", () => {
       />
     );
 
-    const input = screen.getByRole("slider", { name: "预览进度" });
+    const input = screen.getByRole("slider", { name: "預覽進度" });
     fireEvent.change(input, { target: { value: "2.25" } });
     expect(onSeek).toHaveBeenLastCalledWith(2.25);
 
@@ -235,7 +235,7 @@ describe("PreviewScrubber", () => {
 
     fireEvent.pointerDown(hitArea, { button: 0, clientX: 110, pointerId: 7 });
     expect(onSeek).toHaveBeenLastCalledWith(2);
-    expect(document.activeElement).toBe(screen.getByRole("slider", { name: "预览进度" }));
+    expect(document.activeElement).toBe(screen.getByRole("slider", { name: "預覽進度" }));
 
     fireEvent.pointerMove(hitArea, { clientX: 160, pointerId: 7 });
     expect(onSeek).toHaveBeenLastCalledWith(3);

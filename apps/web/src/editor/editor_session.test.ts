@@ -150,7 +150,7 @@ describe("EditorSession", () => {
     expect(snapshot).toMatchObject({
       saveState: "error",
       pendingCount: 2,
-      error: expect.stringContaining("已隔离 1 项冲突操作")
+      error: expect.stringContaining("已隔離 1 項衝突操作")
     });
     expect(findTrack(snapshot.timeline, "visual_base").clips?.map((clip) => clip.timeline_clip_id))
       .toContain("visual_a_split_15");
@@ -188,7 +188,7 @@ describe("EditorSession", () => {
     const snapshot = session.snapshot();
     expect(snapshot.saveState).toBe("error");
     expect(snapshot.pendingCount).toBe(0);
-    expect(snapshot.error).toContain("已隔离 1 项冲突操作");
+    expect(snapshot.error).toContain("已隔離 1 項衝突操作");
     expect(findTrack(snapshot.timeline, "visual_base").clips?.map((clip) => clip.timeline_clip_id))
       .toContain("visual_a_split_15");
     expect(() => findClip(snapshot.timeline, "visual_b")).toThrow("missing clip visual_b");
@@ -214,7 +214,7 @@ describe("EditorSession", () => {
     expect(session.snapshot()).toMatchObject({
       saveState: "error",
       pendingCount: 2,
-      error: expect.stringContaining("已隔离 1 项冲突操作")
+      error: expect.stringContaining("已隔離 1 項衝突操作")
     });
     expect(session.beginSave()).toEqual([first, suffix]);
   });
@@ -286,16 +286,16 @@ describe("EditorSession", () => {
     }];
     expect(() => applyLocalTimelineOperation(initial, {
       kind: "edit_subtitle_text", timeline_clip_id: "subtitle_a", text: "字幕", style: " "
-    })).toThrow("字幕 style 必须是");
+    })).toThrow("字幕 style 必須是");
     expect(() => applyLocalTimelineOperation(initial, {
       kind: "insert_subtitle", start_frame: 20, end_frame: 40, text: "字幕", style: "karaoke"
-    })).toThrow("字幕 style 必须是");
+    })).toThrow("字幕 style 必須是");
     expect(() => applyLocalTimelineOperation(initial, {
       kind: "edit_subtitle_text", timeline_clip_id: "subtitle_a"
     })).toThrow("至少需要提供 text 或 style");
     expect(() => applyLocalTimelineOperation(initial, {
       kind: "edit_subtitle_text", timeline_clip_id: "subtitle_a", text: " ", style: "default"
-    })).toThrow("字幕文字不能为空");
+    })).toThrow("字幕文字不能為空");
   });
 
   it("音频淡入淡出按整数帧乐观更新，并折叠连续拖动", () => {

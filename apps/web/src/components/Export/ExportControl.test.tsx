@@ -20,10 +20,10 @@ describe("ExportControl 用户最终导出", () => {
     });
     renderControl(fetchMock);
 
-    expect(screen.queryByLabelText("导出画幅")).toBeNull();
-    fireEvent.click(await screen.findByRole("button", { name: "导出" }));
+    expect(screen.queryByLabelText("匯出畫幅")).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "匯出" }));
 
-    await screen.findByText("v7 已排队");
+    await screen.findByText("v7 已排隊");
     const request = requests.find((item) => item.init?.method === "POST");
     expect(request?.url).toBe("/api/drafts/draft_1/exports");
     expect(JSON.parse(String(request?.init?.body))).toEqual({
@@ -61,7 +61,7 @@ describe("ExportControl 用户最终导出", () => {
     });
     renderControl(fetchMock, { timelineId: "draft_1:v3", timelineVersion: 3 });
 
-    fireEvent.click(await screen.findByRole("button", { name: "重试 v3" }));
+    fireEvent.click(await screen.findByRole("button", { name: "重試 v3" }));
 
     await waitFor(() => {
       expect(
@@ -103,9 +103,9 @@ describe("ExportControl 用户最终导出", () => {
     });
     renderControl(fetchMock, { timelineId: "draft_1:v4", timelineVersion: 4 });
 
-    expect(await screen.findByRole("button", { name: "重试 v3" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "导出" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "重试 v3" }));
+    expect(await screen.findByRole("button", { name: "重試 v3" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "匯出" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "重試 v3" }));
 
     await waitFor(() => {
       expect(
@@ -122,7 +122,7 @@ describe("ExportControl 用户最终导出", () => {
     const succeeded = exportFixture({ status: "succeeded", export_id: "export_7", progress: 1 });
     renderControl(async () => jsonResponse({ exports: [succeeded] }));
 
-    const link = await screen.findByRole("link", { name: "下载 v7" });
+    const link = await screen.findByRole("link", { name: "下載 v7" });
     expect(link.getAttribute("href")).toBe("/api/media/export/export_7?token=test-token");
     expect(link.getAttribute("download")).toBe("rushes-v7.mp4");
   });
@@ -140,16 +140,16 @@ describe("ExportControl 用户最终导出", () => {
       timelineVersion: 8
     });
 
-    expect(await screen.findByText("已有 v7 成片，当前 v8")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "下载 v7" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "导出" })).toBeTruthy();
+    expect(await screen.findByText("已有 v7 成片，當前 v8")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "下載 v7" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "匯出" })).toBeTruthy();
   });
 
   it("上层保存态或租约禁用时不允许提交", async () => {
     const fetchMock: FetchMock = vi.fn(async () => jsonResponse({ exports: [] }));
     renderControl(fetchMock, { disabled: true, disabledReason: "Agent 正在编辑" });
 
-    const button = await screen.findByRole("button", { name: "导出" });
+    const button = await screen.findByRole("button", { name: "匯出" });
     expect((button as HTMLButtonElement).disabled).toBe(true);
     expect(button.getAttribute("title")).toBe("Agent 正在编辑");
     fireEvent.click(button);

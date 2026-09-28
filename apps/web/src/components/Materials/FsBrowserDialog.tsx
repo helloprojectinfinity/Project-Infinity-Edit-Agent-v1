@@ -102,14 +102,14 @@ export function FsBrowserDialog({
             <div className="min-w-0">
               <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
               <p className="mt-1 truncate text-sm text-fg-muted">
-                {currentPath ?? "选择一个服务器允许访问的根目录"}
+                {currentPath ?? "選擇一個伺服器允許存取的根目錄"}
               </p>
             </div>
             <Dialog.Close asChild>
               <button
                 className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-fg-muted transition-colors ease-standard hover:bg-hover hover:text-fg"
                 type="button"
-                aria-label="关闭"
+                aria-label="關閉"
               >
                 <X size={16} strokeWidth={1.75} aria-hidden />
               </button>
@@ -119,10 +119,10 @@ export function FsBrowserDialog({
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
           {currentPath === null ? (
             rootsQuery.isLoading ? (
-              <p className="text-sm text-fg-muted">正在读取根目录</p>
+              <p className="text-sm text-fg-muted">正在讀取根目錄</p>
             ) : rootsQuery.error ? (
               <p className="rounded-md bg-danger/15 px-3 py-2 text-sm text-danger">
-                根目录读取失败
+                根目錄讀取失敗
               </p>
             ) : (
               <div className="space-y-2">
@@ -138,15 +138,15 @@ export function FsBrowserDialog({
                       <span className="font-medium">{root.name}</span>
                       <span className="ml-2 text-xs text-fg-muted">{root.path}</span>
                     </span>
-                    <span className="text-xs text-fg-muted">{root.exists ? "打开" : "不存在"}</span>
+                    <span className="text-xs text-fg-muted">{root.exists ? "打開" : "不存在"}</span>
                   </button>
                 ))}
               </div>
             )
           ) : listQuery.isLoading ? (
-            <p className="text-sm text-fg-muted">正在读取目录</p>
+            <p className="text-sm text-fg-muted">正在讀取目錄</p>
           ) : listQuery.error ? (
-            <p className="rounded-md bg-danger/15 px-3 py-2 text-sm text-danger">目录读取失败</p>
+            <p className="rounded-md bg-danger/15 px-3 py-2 text-sm text-danger">目錄讀取失敗</p>
           ) : (
             <div className="space-y-4">
               <div className="flex flex-wrap gap-2">
@@ -158,7 +158,7 @@ export function FsBrowserDialog({
                     setSelectedFile(null);
                   }}
                 >
-                  根目录
+                  根目錄
                 </button>
                 {parentPath(currentPath) ? (
                   <button
@@ -169,7 +169,7 @@ export function FsBrowserDialog({
                       setSelectedFile(null);
                     }}
                   >
-                    上一级
+                    上一級
                   </button>
                 ) : null}
               </div>
@@ -177,14 +177,14 @@ export function FsBrowserDialog({
               {directories.length > 0 ? (
                 <div>
                   <h3 className="mb-2 text-xs font-semibold text-fg-muted">
-                    目录{multi ? "（勾选整个文件夹连同子文件夹一起导入）" : ""}
+                    目錄{multi ? "（勾選整個資料夾，連同子資料夾一起匯入）" : ""}
                   </h3>
                   <div className="space-y-1">
                     {directories.map((entry) => (
                       <div key={entry.path} className="flex items-center gap-2">
                         {multi ? (
                           <input
-                            aria-label={`选择文件夹 ${entry.name}`}
+                            aria-label={`選擇資料夾 ${entry.name}`}
                             checked={selectedPaths.has(entry.path)}
                             className="accent-[color:var(--color-accent)]"
                             type="checkbox"
@@ -214,10 +214,10 @@ export function FsBrowserDialog({
               ) : null}
 
               <div>
-                <h3 className="mb-2 text-xs font-semibold text-fg-muted">媒体文件</h3>
+                <h3 className="mb-2 text-xs font-semibold text-fg-muted">媒體檔案</h3>
                 {files.length === 0 ? (
                   <p className="rounded-md border border-dashed border-line-strong px-3 py-4 text-sm text-fg-muted">
-                    当前目录没有可导入的媒体文件。
+                    當前目錄沒有可匯入的媒體檔案。
                   </p>
                 ) : (
                   <div className="space-y-1">
@@ -262,9 +262,9 @@ export function FsBrowserDialog({
           <p className="min-w-0 truncate text-sm text-fg-muted">
             {multi
               ? selectedPaths.size > 0
-                ? `已选 ${selectedPaths.size} 项：${[...selectedPaths.values()].join("、")}`
-                : "未选择"
-              : (selectedFile?.path ?? "未选择文件")}
+                ? `已選 ${selectedPaths.size} 項：${[...selectedPaths.values()].join("、")}`
+                : "未選擇"
+              : (selectedFile?.path ?? "未選擇檔案")}
           </p>
             <div className="flex shrink-0 gap-2">
               <Dialog.Close asChild>

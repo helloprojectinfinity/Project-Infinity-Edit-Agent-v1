@@ -18,7 +18,7 @@ test("token 首次授权后跨浏览器会话保留", async ({ page, context }) 
   await reopened.goto("/");
 
   await expect(reopened.getByRole("heading", { name: "草稿" })).toBeVisible();
-  await expect(reopened.getByText("请从后端启动 URL 打开 Rushes")).toHaveCount(0);
+  await expect(reopened.getByText("請從後端啟動網址開啟 Rushes")).toHaveCount(0);
 });
 
 test("流式控制台：开始创作后发消息，对话流出现助手回复文本", async ({ page }) => {
@@ -26,13 +26,13 @@ test("流式控制台：开始创作后发消息，对话流出现助手回复�
   await expect(page.getByRole("heading", { name: "草稿" })).toBeVisible();
 
   // 全程走真实 UI/API：首页「开始创作」= POST /drafts → 直接进编辑器（无表单）。
-  await page.getByRole("button", { name: "开始创作", exact: true }).click();
+  await page.getByRole("button", { name: "開始創作", exact: true }).click();
   await expect(page).toHaveURL(/\/drafts\//);
-  await expect(page.getByRole("complementary", { name: "剪辑对话" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "剪接對話" })).toBeVisible();
 
   // 发送用户消息（POST /drafts/{id}/messages → 入 Turn Queue）。
-  await page.getByLabel("消息输入").fill(USER_MESSAGE);
-  await page.getByRole("button", { name: "发送" }).click();
+  await page.getByLabel("訊息輸入").fill(USER_MESSAGE);
+  await page.getByRole("button", { name: "送出訊息" }).click();
 
   // 用户气泡出现（乐观渲染 + 落库回放）。
   await expect(page.getByText(USER_MESSAGE)).toBeVisible();
@@ -43,22 +43,22 @@ test("流式控制台：开始创作后发消息，对话流出现助手回复�
   await expect(replyBubble).toContainText(SCRIPTED_REPLY);
 
   // turn-stream 终态后输入框恢复可用。
-  await expect(page.getByLabel("消息输入")).toBeEnabled();
+  await expect(page.getByLabel("訊息輸入")).toBeEnabled();
 });
 
 test("Stop Gate UI 生命周期：rejected 可区分，blocked→passed 原位更新", async ({ page }) => {
   await page.goto(`/#t=${TOKEN}`);
-  await page.getByRole("button", { name: "开始创作", exact: true }).click();
+  await page.getByRole("button", { name: "開始創作", exact: true }).click();
   await expect(page).toHaveURL(/\/drafts\//);
 
-  await page.getByLabel("消息输入").fill("E2E_STOP_GATE_LIFECYCLE");
-  await page.getByRole("button", { name: "发送" }).click();
+  await page.getByLabel("訊息輸入").fill("E2E_STOP_GATE_LIFECYCLE");
+  await page.getByRole("button", { name: "送出訊息" }).click();
 
   const tools = page.getByTestId("tool-activity-group");
-  await expect(tools).toContainText("有调用未执行");
-  await expect(tools.getByText("未执行", { exact: true })).toBeVisible();
-  await expect(tools).not.toContainText("工具执行失败");
-  await expect(page.getByText("检查时间线", { exact: true })).toHaveCount(0);
+  await expect(tools).toContainText("有呼叫未執行");
+  await expect(tools.getByText("未執行", { exact: true })).toBeVisible();
+  await expect(tools).not.toContainText("工具執行失敗");
+  await expect(page.getByText("檢查時間線", { exact: true })).toHaveCount(0);
 
   const gate = page.getByTestId("stop-gate-group");
   await expect(gate).toHaveAttribute("data-stop-gate-status", "blocked");
@@ -68,7 +68,7 @@ test("Stop Gate UI 生命周期：rejected 可区分，blocked→passed 原位�
 
   await expect(gate).toHaveAttribute("data-stop-gate-status", "passed");
   await expect(gate).toHaveAttribute("data-timeline-id", "draft_e2e:v2");
-  await expect(gate).toContainText("终验通过");
+  await expect(gate).toContainText("終驗通過");
   await expect(gate).toHaveCount(1);
   await expect(page.locator('[data-message-kind="reply"]')).toContainText("E2E_STOP_GATE_PASSED");
 });

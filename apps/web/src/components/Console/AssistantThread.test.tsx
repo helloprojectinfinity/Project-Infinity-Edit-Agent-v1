@@ -17,7 +17,7 @@ describe("AssistantThread Claude Code 式消息流", () => {
     const view = renderThread({ isRunning: true });
 
     const indicator = screen.getByTestId("turn-activity-indicator");
-    expect(indicator.getAttribute("data-turn-activity")).toBe("正在读取上下文");
+    expect(indicator.getAttribute("data-turn-activity")).toBe("正在讀取上下文");
     expect(screen.getByText(/00:00/)).toBeTruthy();
 
     act(() => vi.advanceTimersByTime(3_200));
@@ -40,7 +40,7 @@ describe("AssistantThread Claude Code 式消息流", () => {
         ]}
       />
     );
-    expect(indicator.getAttribute("data-turn-activity")).toBe("正在检测镜头");
+    expect(indicator.getAttribute("data-turn-activity")).toBe("正在偵測鏡頭");
     expect(screen.getByText(/00:03/)).toBeTruthy();
 
     view.rerender(
@@ -60,7 +60,7 @@ describe("AssistantThread Claude Code 式消息流", () => {
         ]}
       />
     );
-    expect(indicator.getAttribute("data-turn-activity")).toBe("正在检索镜头");
+    expect(indicator.getAttribute("data-turn-activity")).toBe("正在搜尋鏡頭");
   });
 
   it("像 Claude Code 一样持续显示模型超时重试序号", () => {
@@ -75,8 +75,8 @@ describe("AssistantThread Claude Code 式消息流", () => {
     });
 
     const indicator = screen.getByTestId("turn-activity-indicator");
-    expect(indicator.getAttribute("data-turn-activity")).toBe("模型响应超时，正在重试 3/5");
-    expect(screen.getByText("模型响应超时，正在重试 3/5")).toBeTruthy();
+    expect(indicator.getAttribute("data-turn-activity")).toBe("模型响应超时，正在重試 3/5");
+    expect(screen.getByText("模型响应超时，正在重試 3/5")).toBeTruthy();
   });
 
   it("把连续后台回调折叠并合并重复文案", () => {
@@ -94,7 +94,7 @@ describe("AssistantThread Claude Code 式消息流", () => {
     expect(group.open).toBe(false);
     expect(group.getAttribute("data-layout")).toBe("inline");
     expect(group.getAttribute("data-background-count")).toBe("3");
-    expect(screen.getByText("3 条")).toBeTruthy();
+    expect(screen.getByText("3 條")).toBeTruthy();
     expect(screen.getByText("×3")).toBeTruthy();
     expect(screen.getAllByText("后台任务已完成，我已读取结果并继续推进。")).toHaveLength(1);
   });
@@ -147,7 +147,7 @@ describe("AssistantThread Claude Code 式消息流", () => {
     expect(screen.getByText("已使用工具")).toBeTruthy();
     fireEvent.click(group.querySelector(":scope > summary")!);
     await waitFor(() => expect(group.open).toBe(true));
-    expect(screen.getAllByText("结果")).toHaveLength(2);
+    expect(screen.getAllByText("結果")).toHaveLength(2);
   });
 
   it("展示 Harness 自动 Preview QA 的步骤、进度与耗时", () => {
@@ -190,9 +190,9 @@ describe("AssistantThread Claude Code 式消息流", () => {
       ]
     });
 
-    expect(screen.getByText("生成工作预览")).toBeTruthy();
-    expect(screen.getByText("检查预览")).toBeTruthy();
-    expect(screen.getByText("汇总预览质检")).toBeTruthy();
+    expect(screen.getByText("生成工作預覽")).toBeTruthy();
+    expect(screen.getByText("檢查預覽")).toBeTruthy();
+    expect(screen.getByText("彙總預覽質檢")).toBeTruthy();
     expect(screen.getAllByText("Harness")).toHaveLength(3);
     expect(screen.getByText("50%")).toBeTruthy();
     expect(screen.getByText("41ms")).toBeTruthy();
@@ -229,10 +229,10 @@ describe("AssistantThread Claude Code 式消息流", () => {
 
     expect(screen.getAllByTestId("tool-activity-group")).toHaveLength(1);
     expect(screen.getAllByTestId("stop-gate-group")).toHaveLength(1);
-    expect(screen.getAllByText("加载 Action Schema")).toHaveLength(2);
-    expect(screen.getByText("终验尚未通过，Agent 将继续修复")).toBeTruthy();
+    expect(screen.getAllByText("載入 Action Schema")).toHaveLength(2);
+    expect(screen.getByText("終驗尚未通過，Agent 將繼續修復")).toBeTruthy();
     expect(screen.getByText("时间线存在空洞")).toBeTruthy();
-    expect(screen.getByText(/另有 2 项；validation:draft_1:v3/)).toBeTruthy();
+    expect(screen.getByText(/另有 2 項；validation:draft_1:v3/)).toBeTruthy();
     expect(screen.getAllByText("<1ms")).toHaveLength(2);
   });
 
@@ -251,9 +251,9 @@ describe("AssistantThread Claude Code 式消息流", () => {
 
     const group = screen.getByTestId("tool-activity-group") as HTMLDetailsElement;
     expect(group.open).toBe(true);
-    expect(screen.getByText("有调用未执行")).toBeTruthy();
-    expect(screen.getByText("未执行").className).toContain("text-warn");
-    expect(screen.queryByText("工具执行失败")).toBeNull();
+    expect(screen.getByText("有呼叫未執行")).toBeTruthy();
+    expect(screen.getByText("未執行").className).toContain("text-warn");
+    expect(screen.queryByText("工具執行失敗")).toBeNull();
     expect(screen.getByText("<1ms")).toBeTruthy();
   });
 
@@ -278,7 +278,7 @@ describe("AssistantThread Claude Code 式消息流", () => {
     const group = screen.getByTestId("tool-activity-group") as HTMLDetailsElement;
     expect(group.open).toBe(false);
     expect(screen.getByText("已使用工具")).toBeTruthy();
-    expect(screen.getAllByText("渲染预览")).toHaveLength(2);
+    expect(screen.getAllByText("渲染預覽")).toHaveLength(2);
   });
 
   it("刷新后把 stop.gate 历史 trace 恢复成独立 Stop Gate 卡片", () => {
@@ -299,7 +299,7 @@ describe("AssistantThread Claude Code 式消息流", () => {
 
     expect(screen.queryByTestId("tool-activity-group")).toBeNull();
     expect(screen.getByTestId("stop-gate-group")).toBeTruthy();
-    expect(screen.getByText("终验尚未通过，Agent 将继续修复")).toBeTruthy();
+    expect(screen.getByText("終驗尚未通過，Agent 將繼續修復")).toBeTruthy();
     expect(screen.getByText("validation failed")).toBeTruthy();
     expect(screen.getByText("<1ms")).toBeTruthy();
   });
@@ -320,7 +320,7 @@ describe("AssistantThread Claude Code 式消息流", () => {
     const row = screen.getByTestId("turn-failure-row");
     expect(row.getAttribute("data-message-kind")).toBe("turn_failure");
     expect(row.textContent).toContain("本轮没有完成");
-    expect(row.textContent).toContain("本轮失败");
+    expect(row.textContent).toContain("本輪失敗");
     // 失败行独立呈现：不折叠进后台活动组，也不套用户气泡。
     expect(screen.queryByTestId("background-activity-group")).toBeNull();
     expect(row.closest("[data-user-message]")).toBeNull();
@@ -414,9 +414,9 @@ describe("AssistantThread Claude Code 式消息流", () => {
 
     expect(screen.getAllByTestId("decision-group")).toHaveLength(1);
     expect(screen.getAllByTestId("decision-question")).toHaveLength(2);
-    expect(screen.getByText("已回答 2 个问题")).toBeTruthy();
-    expect(screen.getByText("问题 1")).toBeTruthy();
-    expect(screen.getByText("问题 2")).toBeTruthy();
+    expect(screen.getByText("已回答 2 個問題")).toBeTruthy();
+    expect(screen.getByText("問題 1")).toBeTruthy();
+    expect(screen.getByText("問題 2")).toBeTruthy();
     expect(screen.getAllByText("回答")).toHaveLength(2);
     expect(screen.getAllByTestId("decision-answer")).toHaveLength(2);
     expect(screen.getByText("Tim-Macbook Neo Talking节选.mp4")).toBeTruthy();
@@ -432,7 +432,7 @@ describe("AssistantThread Claude Code 式消息流", () => {
       text: "正在分析"
     };
     const view = renderThread({ streamItems: [first], isRunning: true });
-    const scroller = screen.getByLabelText("消息列表");
+    const scroller = screen.getByLabelText("訊息列表");
     Object.defineProperties(scroller, {
       scrollHeight: { configurable: true, value: 300 },
       clientHeight: { configurable: true, value: 100 }
@@ -460,10 +460,10 @@ describe("AssistantThread Claude Code 式消息流", () => {
         streamItems={[{ ...first, text: "正在分析素材和声音" }]}
       />
     );
-    await waitFor(() => expect(screen.getByText("查看最新输出")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("查看最新輸出")).toBeTruthy());
     expect(scroller.scrollTop).toBe(0);
 
-    fireEvent.click(screen.getByText("查看最新输出"));
+    fireEvent.click(screen.getByText("查看最新輸出"));
     expect(scroller.scrollTop).toBe(300);
   });
 
@@ -496,9 +496,9 @@ describe("AssistantThread Claude Code 式消息流", () => {
       />
     );
     const card = screen.getByTestId("memory-updated-card");
-    expect(card.textContent).toContain("已记住长期记忆");
+    expect(card.textContent).toContain("已記住長期記憶");
     expect(card.textContent).toContain("成片节奏偏快");
-    expect(card.textContent).toContain("原话：“以后都快一点”");
+    expect(card.textContent).toContain("原話：“以后都快一点”");
     expect(card.textContent).toContain("pacing");
     fireEvent.click(screen.getByRole("button", { name: "撤回" }));
     await waitFor(() =>
@@ -510,7 +510,7 @@ describe("AssistantThread Claude Code 式消息流", () => {
       })
     );
     expect(screen.getByText("已撤回")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "在设置中查看和编辑" }));
+    fireEvent.click(screen.getByRole("button", { name: "在設定中查看與編輯" }));
     expect(onOpenMemorySettings).toHaveBeenCalledTimes(1);
   });
 
@@ -555,7 +555,7 @@ describe("AssistantThread Claude Code 式消息流", () => {
       />
     );
 
-    expect(screen.getByText("已被后续更新")).toBeTruthy();
+    expect(screen.getByText("已被後續更新")).toBeTruthy();
     const retractButtons = screen.getAllByRole("button", { name: "撤回" });
     expect(retractButtons).toHaveLength(1);
     fireEvent.click(retractButtons[0]);

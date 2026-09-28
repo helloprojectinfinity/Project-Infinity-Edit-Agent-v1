@@ -39,9 +39,9 @@ export function AffectedMemoriesCard({
 }): ReactElement {
   return (
     <MemoryCardShell testId="affected-memories-card">
-      <p className="font-medium">这些长期记忆来自被撤回的对话</p>
+      <p className="font-medium">這些長期記憶來自被撤回的對話</p>
       <p className="mt-0.5 text-xs text-fg-muted">
-        刚才的编辑并重发撤回了下面这些记忆所依据的对话。默认保留;若不该记住,可一并撤回。
+        剛才的編輯並重發撤回了下面這些記憶所依據的對話。預設保留；若不該記住，可一併撤回。
       </p>
       <ul className="mt-1.5 space-y-1">
         {memories.map((memory) => (
@@ -52,7 +52,7 @@ export function AffectedMemoriesCard({
           </li>
         ))}
       </ul>
-      <p className="mt-1.5 text-2xs text-danger">撤回后不可恢复。</p>
+      <p className="mt-1.5 text-2xs text-danger">撤回後不可復原。</p>
       <div className="mt-1.5 flex items-center gap-2">
         <button
           type="button"
@@ -60,7 +60,7 @@ export function AffectedMemoriesCard({
           onClick={onRetract}
           disabled={retracting}
         >
-          {retracting ? "撤回中…" : "撤回这些记忆"}
+          {retracting ? "撤回中…" : "撤回這些記憶"}
         </button>
         <button
           type="button"

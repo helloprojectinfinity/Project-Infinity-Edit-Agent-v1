@@ -96,7 +96,7 @@ export function AssetsPanel({
       setDuplicateFiles(response.duplicates ?? []);
       await invalidateMaterials();
     } catch {
-      setImportError("导入失败，请重试。");
+      setImportError("匯入失敗，請重試。");
     } finally {
       setImporting(false);
     }
@@ -138,11 +138,11 @@ export function AssetsPanel({
     } catch {
       if (controller.signal.aborted) {
         if (pickerAbortReasonRef.current === "timeout") {
-          setImportError("Finder 选择等待超时，已停止等待。请重试或改用应用内选择。");
+          setImportError("Finder 選擇等待逾時，已停止等待。請重試或改用應用內選擇。");
           setInAppPickerOpen(true);
         }
       } else {
-        setImportError("无法打开 Finder 选择框，已切换到应用内选择。");
+        setImportError("無法打開 Finder 選擇框，已切換到應用內選擇。");
         setInAppPickerOpen(true);
       }
     } finally {
@@ -204,16 +204,16 @@ export function AssetsPanel({
         <div className="flex min-w-0 items-center justify-end gap-1">
           {picking ? (
             <div className="flex items-center gap-1 text-2xs text-fg-muted">
-              <span role="status">等待 Finder 选择</span>
+              <span role="status">等待 Finder 選擇</span>
               <button
                 className="rounded px-1 py-0.5 text-accent hover:bg-accent/10"
                 type="button"
                 onClick={() => abortNativePicker("fallback")}
               >
-                应用内选择
+                應用內選擇
               </button>
               <button
-                aria-label="取消素材选择"
+                aria-label="取消素材選擇"
                 className="rounded px-1 py-0.5 hover:bg-hover hover:text-fg"
                 type="button"
                 onClick={() => abortNativePicker("cancel")}
@@ -222,14 +222,14 @@ export function AssetsPanel({
               </button>
             </div>
           ) : importing ? (
-            <span className="text-xs text-fg-muted" role="status">正在导入…</span>
+            <span className="text-xs text-fg-muted" role="status">正在匯入…</span>
           ) : null}
           {management ? (
             <button
               className="grid size-7 shrink-0 place-items-center rounded-sm text-fg-muted transition-colors ease-standard hover:bg-hover disabled:opacity-40"
               type="button"
-              aria-label="重新检测失效素材"
-              title="重新检测失效素材"
+              aria-label="重新檢測失效素材"
+              title="重新檢測失效素材"
               disabled={revalidateMaterials.isPending}
               onClick={() => revalidateMaterials.mutate()}
             >
@@ -241,10 +241,10 @@ export function AssetsPanel({
             type="button"
             disabled={busy}
             onClick={() => void pickAndImport()}
-            title="选择素材或文件夹；文件夹将递归导入"
+            title="選擇素材或資料夾；資料夾將遞迴匯入"
           >
             <Plus size={14} strokeWidth={2} aria-hidden />
-            导入素材
+            匯入素材
           </button>
         </div>
       </header>
@@ -252,7 +252,7 @@ export function AssetsPanel({
       {currentDir !== "" ? (
         <nav
           className="flex shrink-0 flex-wrap items-center gap-1 border-b border-line px-3 py-1.5 text-xs"
-          aria-label="素材文件夹路径"
+          aria-label="素材資料夾路徑"
         >
           <button
             className="rounded px-1.5 py-0.5 text-fg-muted hover:bg-hover hover:text-fg"
@@ -278,25 +278,25 @@ export function AssetsPanel({
 
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {materialsQuery.isLoading ? (
-          <p className="text-sm text-fg-muted">正在读取素材</p>
+          <p className="text-sm text-fg-muted">正在讀取素材</p>
         ) : materialsQuery.error ? (
           <p className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
-            素材列表加载失败
+            素材列表載入失敗
           </p>
         ) : assets.length === 0 ? (
           <div className="grid min-h-48 place-items-center px-5 text-center">
             <div>
               <Film size={22} strokeWidth={1.5} className="mx-auto mb-3 text-fg-faint" aria-hidden />
-              <p className="text-xs leading-5 text-fg-muted">还没有素材</p>
+              <p className="text-xs leading-5 text-fg-muted">還沒有素材</p>
               <button
                 className="mt-3 rounded-sm bg-raised px-3 py-1.5 text-xs text-fg hover:bg-hover disabled:opacity-40"
                 type="button"
                 disabled={busy}
                 onClick={() => void pickAndImport()}
               >
-                从 Finder 导入
+                從 Finder 匯入
               </button>
-              <p className="mt-2 text-2xs text-fg-faint">原地索引，不复制文件</p>
+              <p className="mt-2 text-2xs text-fg-faint">原地索引，不複製檔案</p>
             </div>
           </div>
         ) : (
@@ -326,18 +326,18 @@ export function AssetsPanel({
         )}
         {skippedFiles.length > 0 ? (
           <p className="mt-3 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
-            已跳过 {skippedFiles.length} 个不支持的文件：{skippedFiles.slice(0, 5).join("、")}
+            已跳過 {skippedFiles.length} 個不支援的檔案：{skippedFiles.slice(0, 5).join("、")}
             {skippedFiles.length > 5 ? " 等" : ""}
           </p>
         ) : null}
         {duplicateFiles.length > 0 ? (
           <p className="mt-3 rounded-md border border-line bg-raised px-3 py-2 text-xs text-fg-muted">
-            {duplicateFiles.length} 个文件已在素材库中，未重复导入。
+            {duplicateFiles.length} 個檔案已在素材庫中，未重複匯入。
           </p>
         ) : null}
         {failedFiles.length > 0 ? (
           <p className="mt-3 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">
-            {failedFiles.length} 个文件导入失败：{failedFiles.slice(0, 5).join("、")}
+            {failedFiles.length} 個檔案匯入失敗：{failedFiles.slice(0, 5).join("、")}
             {failedFiles.length > 5 ? " 等" : ""}
           </p>
         ) : null}
@@ -360,8 +360,8 @@ export function AssetsPanel({
 
       <FsBrowserDialog
         open={inAppPickerOpen}
-        title="在应用中选择素材"
-        submitLabel="导入所选"
+        title="在應用中選擇素材"
+        submitLabel="匯入所選"
         onClose={() => setInAppPickerOpen(false)}
         onSelectMany={(paths) => {
           setInAppPickerOpen(false);
@@ -373,7 +373,7 @@ export function AssetsPanel({
         <FsBrowserDialog
           open={relocatingAsset !== null}
           title="重新定位失效素材"
-          submitLabel="使用此路径"
+          submitLabel="使用此路徑"
           onClose={() => setRelocatingAsset(null)}
           onSelect={(path) => relocateMaterial.mutate(path)}
         />
@@ -393,13 +393,13 @@ export function AssetsPanel({
             aria-describedby={undefined}
             className="rx-content fixed left-1/2 top-1/2 z-40 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl bg-raised p-5 shadow-overlay focus:outline-none"
           >
-            <Dialog.Title className="text-base font-semibold text-fg">删除素材引用</Dialog.Title>
+            <Dialog.Title className="text-base font-semibold text-fg">刪除素材引用</Dialog.Title>
             <p className="mt-3 text-sm text-fg-muted">
-              将从本草稿移除
+              將從本草稿移除
               <span className="mx-1 text-fg">
                 {deletingAsset?.filename || deletingAsset?.asset_id}
               </span>
-              的引用。物理文件与全局索引保留，之后重新导入可秒级回链。
+              的引用。實體檔案與全域索引保留，之後重新匯入可秒級回鏈。
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <Dialog.Close asChild>
@@ -421,7 +421,7 @@ export function AssetsPanel({
                   setDeletingAsset(null);
                 }}
               >
-                删除引用
+                刪除引用
               </button>
             </div>
           </Dialog.Content>
@@ -496,14 +496,14 @@ function AssetTile({
       type="button"
       title={filename}
       // 主点击面即试看：给显性可访问名（区别于 ⋯ 的「更多操作」），键盘/读屏可达且不歧义。
-      aria-label={onClick ? `试看 ${filename}` : filename}
+      aria-label={onClick ? `試看 ${filename}` : filename}
       onClick={onClick}
     >
       <div className="relative aspect-video bg-ink">
         {thumbReady ? (
           <img
             src={api.mediaThumbnailUrl(asset.asset_id)}
-            alt={`${asset.filename || asset.asset_id} 缩略图`}
+            alt={`${asset.filename || asset.asset_id} 縮圖`}
             className="h-full w-full object-cover"
             loading="lazy"
             onError={() => setThumbFailed(true)}
@@ -511,7 +511,7 @@ function AssetTile({
         ) : (
           <div
             className="tile-pulse grid h-full w-full place-items-center text-fg-faint"
-            aria-label={`${kindLabel(asset.kind)}处理中`}
+            aria-label={`${kindLabel(asset.kind)}處理中`}
           >
             <KindIcon size={24} strokeWidth={1.5} aria-hidden />
           </div>
@@ -526,8 +526,8 @@ function AssetTile({
             {ingesting ? (
               <span
                 className="grid h-5 w-5 place-items-center rounded bg-black/70 text-white"
-                aria-label="转码与索引处理中"
-                title="处理中"
+                aria-label="轉碼與索引處理中"
+                title="處理中"
               >
                 <Loader2 size={14} strokeWidth={2} className="animate-spin" aria-hidden />
               </span>
@@ -546,7 +546,7 @@ function AssetTile({
         </span>
         {showUnderstandingDot ? (
           <span
-            aria-label={`理解状态：${understanding.label}`}
+            aria-label={`理解狀態：${understanding.label}`}
             className={`h-1.5 w-1.5 shrink-0 rounded-full ${understandingDotClass(asset.understanding_status)}`}
             title={understanding.label}
           />
@@ -614,7 +614,7 @@ const TILE_MENU_ITEM_CLASS =
 const TILE_MENU_ITEM_DANGER_CLASS =
   "flex cursor-pointer select-none items-center gap-2 rounded-md px-2.5 py-1.5 text-danger outline-none data-[highlighted]:bg-danger/10 data-[disabled]:pointer-events-none data-[disabled]:opacity-40";
 
-/** 瓦片菜单三项（查看理解摘要/重新定位/删除引用）：DropdownMenu 与 ContextMenu 共用。 */
+/** 瓦片選單三項（查看理解摘要/重新定位/刪除引用）：DropdownMenu 與 ContextMenu 共用。 */
 function AssetMenuItems({
   item: Item,
   asset,
@@ -648,7 +648,7 @@ function AssetMenuItems({
         onSelect={onRequestDelete}
       >
         <Trash2 size={15} strokeWidth={1.75} aria-hidden />
-        删除引用
+        刪除引用
       </Item>
     </>
   );
@@ -683,7 +683,7 @@ function foldersAt(assets: MaterialAsset[], dir: string): FolderNode[] {
       nodes.set(path, { name: nextSegment, path, count: 1 });
     }
   }
-  return [...nodes.values()].sort((a, b) => a.name.localeCompare(b.name, "zh-Hans-CN"));
+  return [...nodes.values()].sort((a, b) => a.name.localeCompare(b.name, "zh-HK"));
 }
 
 function breadcrumbSegments(dir: string): Array<{ name: string; path: string }> {
@@ -709,10 +709,10 @@ function understandingDotClass(status: string): string {
 
 function kindLabel(kind: string): string {
   const labels: Record<string, string> = {
-    video: "视频",
-    audio: "音频",
-    image: "图片",
-    font: "字体"
+    video: "影片",
+    audio: "音訊",
+    image: "圖片",
+    font: "字型"
   };
   return labels[kind] ?? kind;
 }

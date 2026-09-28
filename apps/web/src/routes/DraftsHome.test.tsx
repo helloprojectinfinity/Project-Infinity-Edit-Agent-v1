@@ -32,27 +32,27 @@ describe("DraftsHomePage", () => {
 
     expect(await screen.findByText("7月7日")).toBeTruthy();
     expect(await screen.findByText("旅行 Vlog")).toBeTruthy();
-    expect(screen.getByText("开始创作")).toBeTruthy();
-    await waitFor(() => expect(screen.getByText(/3 个素材/)).toBeTruthy());
+    expect(screen.getByText("開始創作")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText(/3 個素材/)).toBeTruthy());
   });
 
   it("空草稿列表显示空态引导", async () => {
     renderHome({ drafts: [] });
 
-    expect(await screen.findByText("还没有草稿")).toBeTruthy();
+    expect(await screen.findByText("還沒有草稿")).toBeTruthy();
   });
 
   it("点击更多操作展开卡片下拉菜单", async () => {
     renderHome();
 
     await screen.findByText("7月7日");
-    // radix DropdownMenu 由键盘/指针打开（并非裸 click），用 Enter 键触发 Trigger。
+    // radix DropdownMenu 由键盘/指針打開（並非裸 click），用 Enter 鍵觸發 Trigger。
     const trigger = await screen.findByLabelText("草稿 7月7日 更多操作");
     fireEvent.keyDown(trigger, { key: "Enter" });
 
-    await waitFor(() => expect(screen.getByText("重命名")).toBeTruthy());
-    expect(screen.getByText("复制")).toBeTruthy();
-    expect(screen.getByText("删除")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("重新命名")).toBeTruthy());
+    expect(screen.getByText("複製")).toBeTruthy();
+    expect(screen.getByText("刪除")).toBeTruthy();
   });
 
   it("右键卡片打开上下文菜单", async () => {
@@ -61,72 +61,72 @@ describe("DraftsHomePage", () => {
     const title = await screen.findByText("7月7日");
     fireEvent.contextMenu(title);
 
-    await waitFor(() => expect(screen.getByText("重命名")).toBeTruthy());
-    expect(screen.getByText("复制")).toBeTruthy();
-    expect(screen.getByText("删除")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("重新命名")).toBeTruthy());
+    expect(screen.getByText("複製")).toBeTruthy();
+    expect(screen.getByText("刪除")).toBeTruthy();
   });
 
   it("点击开始创作：新建草稿并跳转编辑器", async () => {
     renderHome();
 
     await screen.findByText("7月7日");
-    screen.getByText("开始创作").click();
+    screen.getByText("開始創作").click();
 
-    expect(await screen.findByText("编辑器:draft_new")).toBeTruthy();
+    expect(await screen.findByText("編輯器:draft_new")).toBeTruthy();
   });
 
-  it("批量管理可选择草稿、二次确认并一次删除", async () => {
+  it("批次管理可选择草稿、二次确认并一次删除", async () => {
     renderHome();
 
     await screen.findByText("7月7日");
-    fireEvent.click(screen.getByRole("button", { name: "批量管理" }));
+    fireEvent.click(screen.getByRole("button", { name: "批次管理" }));
 
-    const first = await screen.findByRole("button", { name: "选择草稿 7月7日" });
-    const second = screen.getByRole("button", { name: "选择草稿 旅行 Vlog" });
-    expect(screen.getByRole("button", { name: "删除所选" }).hasAttribute("disabled")).toBe(true);
+    const first = await screen.findByRole("button", { name: "選擇草稿 7月7日" });
+    const second = screen.getByRole("button", { name: "選擇草稿 旅行 Vlog" });
+    expect(screen.getByRole("button", { name: "刪除所選" }).hasAttribute("disabled")).toBe(true);
 
     fireEvent.click(first);
     fireEvent.click(second);
     expect(first.getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByText("2", { selector: "strong" })).toBeTruthy();
-    expect(screen.queryByText("编辑器:draft_1")).toBeNull();
+    expect(screen.queryByText("編輯器:draft_1")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "删除所选" }));
-    expect(await screen.findByRole("dialog", { name: "删除 2 条草稿？" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "刪除所選" }));
+    expect(await screen.findByRole("dialog", { name: "刪除 2 條草稿？" })).toBeTruthy();
     expect(screen.getByText("7月7日", { selector: "li" })).toBeTruthy();
     expect(screen.getByText("旅行 Vlog", { selector: "li" })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "删除 2 条草稿" }));
-    expect(await screen.findByText("还没有草稿")).toBeTruthy();
-    expect(screen.queryByRole("dialog", { name: "删除 2 条草稿？" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "刪除 2 條草稿" }));
+    expect(await screen.findByText("還沒有草稿")).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "刪除 2 條草稿？" })).toBeNull();
   });
 
-  it("批量管理支持全选、取消全选与退出", async () => {
+  it("批次管理支持全选、取消全选与退出", async () => {
     renderHome();
 
     await screen.findByText("7月7日");
-    fireEvent.click(screen.getByRole("button", { name: "批量管理" }));
-    fireEvent.click(await screen.findByRole("button", { name: "全选" }));
+    fireEvent.click(screen.getByRole("button", { name: "批次管理" }));
+    fireEvent.click(await screen.findByRole("button", { name: "全選" }));
     expect(screen.getByText("2", { selector: "strong" })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "取消全选" }));
+    fireEvent.click(screen.getByRole("button", { name: "取消全選" }));
     expect(screen.getByText("0", { selector: "strong" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "退出" }));
-    expect(screen.queryByRole("toolbar", { name: "草稿批量管理" })).toBeNull();
-    expect(screen.getByRole("button", { name: "批量管理" })).toBeTruthy();
+    expect(screen.queryByRole("toolbar", { name: "草稿批次管理" })).toBeNull();
+    expect(screen.getByRole("button", { name: "批次管理" })).toBeTruthy();
   });
 
-  it("批量删除失败时保留选择和草稿并显示原子失败提示", async () => {
+  it("批次删除失败时保留选择和草稿并显示原子失败提示", async () => {
     renderHome({ batchDeleteFails: true });
 
     await screen.findByText("7月7日");
-    fireEvent.click(screen.getByRole("button", { name: "批量管理" }));
-    fireEvent.click(await screen.findByRole("button", { name: "选择草稿 7月7日" }));
-    fireEvent.click(screen.getByRole("button", { name: "删除所选" }));
-    fireEvent.click(await screen.findByRole("button", { name: "删除 1 条草稿" }));
+    fireEvent.click(screen.getByRole("button", { name: "批次管理" }));
+    fireEvent.click(await screen.findByRole("button", { name: "選擇草稿 7月7日" }));
+    fireEvent.click(screen.getByRole("button", { name: "刪除所選" }));
+    fireEvent.click(await screen.findByRole("button", { name: "刪除 1 條草稿" }));
 
     expect((await screen.findByRole("alert")).textContent).toContain(
-      "未删除任何草稿，已保留当前选择，请重试。"
+      "未刪除任何草稿，已保留當前選擇，請重試。"
     );
     expect(screen.getByText("7月7日", { selector: "li" })).toBeTruthy();
     expect(screen.getByText("7月7日", { selector: "span" })).toBeTruthy();
@@ -136,59 +136,59 @@ describe("DraftsHomePage", () => {
     renderHome();
 
     await screen.findByText("7月7日");
-    expect(screen.queryByRole("dialog", { name: "全局设置" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "全域設定" })).toBeNull();
 
-    screen.getByRole("button", { name: "设置" }).click();
-    expect(await screen.findByRole("dialog", { name: "全局设置" })).toBeTruthy();
+    screen.getByRole("button", { name: "設定" }).click();
+    expect(await screen.findByRole("dialog", { name: "全域設定" })).toBeTruthy();
 
-    screen.getByRole("button", { name: "关闭设置" }).click();
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "全局设置" })).toBeNull());
+    screen.getByRole("button", { name: "關閉設定" }).click();
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "全域設定" })).toBeNull());
   });
 
-  it("长期记忆面板支持逐条删除与确认后清空", async () => {
+  it("長期記憶面板支援逐條刪除與確認後清空", async () => {
     renderHome({
       memories: [
-        { memory_key: "pacing", kind: "preference", statement: "成片节奏偏快" },
-        { memory_key: "subtitle_style", kind: "correction", statement: "字幕不要遮脸" }
+        { memory_key: "pacing", kind: "preference", statement: "成片節奏偏快" },
+        { memory_key: "subtitle_style", kind: "correction", statement: "字幕不要遮臉" }
       ]
     });
 
     await screen.findByText("7月7日");
-    fireEvent.click(screen.getByRole("button", { name: "设置" }));
-    expect(await screen.findByText("成片节奏偏快")).toBeTruthy();
-    expect(screen.getByText("字幕不要遮脸")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "設定" }));
+    expect(await screen.findByText("成片節奏偏快")).toBeTruthy();
+    expect(screen.getByText("字幕不要遮臉")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "删除长期记忆 pacing" }));
-    await waitFor(() => expect(screen.queryByText("成片节奏偏快")).toBeNull());
-    expect(screen.getByText("字幕不要遮脸")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "刪除長期記憶 pacing" }));
+    await waitFor(() => expect(screen.queryByText("成片節奏偏快")).toBeNull());
+    expect(screen.getByText("字幕不要遮臉")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "清空全部长期记忆" }));
-    expect(await screen.findByRole("dialog", { name: "确认清空全部长期记忆？" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "清空全部長期記憶" }));
+    expect(await screen.findByRole("dialog", { name: "確認清空全部長期記憶？" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "取消" }));
-    expect(screen.getByText("字幕不要遮脸")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "清空全部长期记忆" }));
-    fireEvent.click(await screen.findByRole("button", { name: "确认清空全部长期记忆" }));
-    expect(await screen.findByText("还没有长期记忆")).toBeTruthy();
+    expect(screen.getByText("字幕不要遮臉")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "清空全部長期記憶" }));
+    fireEvent.click(await screen.findByRole("button", { name: "確認清空全部長期記憶" }));
+    expect(await screen.findByText("還沒有長期記憶")).toBeTruthy();
   });
 
-  it("逐条删除失败后清空成功会移除陈旧错误", async () => {
+  it("逐條刪除失敗後清空成功會移除陳舊錯誤", async () => {
     renderHome({
       memories: [
-        { memory_key: "pacing", kind: "preference", statement: "成片节奏偏快" },
-        { memory_key: "subtitle_style", kind: "correction", statement: "字幕不要遮脸" }
+        { memory_key: "pacing", kind: "preference", statement: "成片節奏偏快" },
+        { memory_key: "subtitle_style", kind: "correction", statement: "字幕不要遮臉" }
       ],
       memoryDeleteFails: true
     });
 
     await screen.findByText("7月7日");
-    fireEvent.click(screen.getByRole("button", { name: "设置" }));
-    fireEvent.click(await screen.findByRole("button", { name: "删除长期记忆 pacing" }));
-    expect((await screen.findByRole("alert")).textContent).toContain("删除失败");
+    fireEvent.click(screen.getByRole("button", { name: "設定" }));
+    fireEvent.click(await screen.findByRole("button", { name: "刪除長期記憶 pacing" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("刪除失敗");
 
-    fireEvent.click(screen.getByRole("button", { name: "清空全部长期记忆" }));
-    fireEvent.click(await screen.findByRole("button", { name: "确认清空全部长期记忆" }));
-    expect(await screen.findByText("还没有长期记忆")).toBeTruthy();
-    expect(screen.queryByText(/删除失败/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "清空全部長期記憶" }));
+    fireEvent.click(await screen.findByRole("button", { name: "確認清空全部長期記憶" }));
+    expect(await screen.findByText("還沒有長期記憶")).toBeTruthy();
+    expect(screen.queryByText(/刪除失敗/)).toBeNull();
   });
 });
 
@@ -212,7 +212,7 @@ type HomeFixture = {
 
 function DraftMarker(): ReactElement {
   const params = useParams({ strict: false }) as { draftId?: string };
-  return <div>编辑器:{params.draftId}</div>;
+  return <div>編輯器:{params.draftId}</div>;
 }
 
 function renderHome(fixture: HomeFixture = {}): void {

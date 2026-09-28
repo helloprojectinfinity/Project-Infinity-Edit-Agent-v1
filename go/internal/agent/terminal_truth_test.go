@@ -246,7 +246,7 @@ func TestTerminalTruthRejectsMutationSuccessWithoutVersionProof(t *testing.T) {
 	if !errors.As(err, &guardErr) || guardErr.kind != "timeline_mutation_unverified" {
 		t.Fatalf("err=%#v", err)
 	}
-	if failure := terminalFailureReply(t.Context(), err); !strings.Contains(failure, "已拒绝成功声明") {
+	if failure := terminalFailureReply(t.Context(), err); !strings.Contains(failure, "已拒絕成功聲明") {
 		t.Fatalf("failure=%q", failure)
 	}
 }
@@ -268,7 +268,7 @@ func TestTerminalTruthRejectsCheckSuccessWithoutVersionProof(t *testing.T) {
 			if !errors.As(err, &guardErr) || guardErr.kind != "timeline_check_unverified" {
 				t.Fatalf("err=%#v", err)
 			}
-			if failure := terminalFailureReply(t.Context(), err); !strings.Contains(failure, "已拒绝成功声明") {
+			if failure := terminalFailureReply(t.Context(), err); !strings.Contains(failure, "已拒絕成功聲明") {
 				t.Fatalf("failure=%q", failure)
 			}
 		})
@@ -373,7 +373,7 @@ func TestConfirmedToolRejectsStructuredAndMalformedFailures(t *testing.T) {
 				t.Fatalf("err=%#v", err)
 			}
 			failure := terminalFailureReply(t.Context(), err)
-			if !strings.Contains(failure, "本轮没有完成") || !strings.Contains(failure, "拒绝越过确认直接收尾") {
+			if !strings.Contains(failure, "本輪未完成") || !strings.Contains(failure, "拒絕略過確認直接結束") {
 				t.Fatalf("failure=%q", failure)
 			}
 		})

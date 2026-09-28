@@ -132,16 +132,16 @@ export function itemFromEvent(payload: DomainSsePayload): StructuredInteractionI
       return {
         kind: "preview",
         id: "preview:latest",
-        title: "预览已生成",
-        description: "可在右侧查看预览。",
+        title: "預覽已生成",
+        description: "可在右側查看預覽。",
         occurrences: 1
       };
     case "ExportCompleted":
       return {
         kind: "preview",
         id: "export:latest",
-        title: "导出完成",
-        description: "最终 MP4 已生成。",
+        title: "匯出完成",
+        description: "最終 MP4 已生成。",
         occurrences: 1
       };
     default:
@@ -321,7 +321,7 @@ function errorEventItem(event: DomainSseEvent): ErrorInteractionItem | null {
   const jobId = stringValue(eventField(event, "job_id"));
   const details = objectValue(eventField(event, "failure")) ?? objectValue(eventField(event, "error"));
   const errorCode = stringValue(eventField(event, "error_code")) ?? stringValue(details?.error_code) ?? "JOB_FAILED";
-  const message = stringValue(eventField(event, "message")) ?? stringValue(details?.message) ?? "任务执行失败";
+  const message = stringValue(eventField(event, "message")) ?? stringValue(details?.message) ?? "任務執行失敗";
   return {
     kind: "error",
     id: jobId ? `error:${jobId}` : `error:${errorCode}`,

@@ -79,21 +79,21 @@ export function ExportControl({
   const requestFailed = createMutation.isError || retryMutation.isError;
 
   return (
-    <div className="flex min-w-0 items-center gap-1.5" aria-label="最终导出">
+    <div className="flex min-w-0 items-center gap-1.5" aria-label="最終匯出">
       {historicalSucceeded && displayedRecord === historicalSucceeded && timelineVersion ? (
         <span
           className="max-w-44 truncate text-2xs text-fg-muted"
           role="status"
-          title={`已有导出来自时间线 v${historicalSucceeded.timeline_version}；当前时间线为 v${timelineVersion}`}
+          title={`已有匯出來自時間線 v${historicalSucceeded.timeline_version}；目前時間線為 v${timelineVersion}`}
         >
-          已有 v{historicalSucceeded.timeline_version} 成片，当前 v{timelineVersion}
+          已有 v{historicalSucceeded.timeline_version} 成片，當前 v{timelineVersion}
         </span>
       ) : displayedRecord ? (
         <ExportStatus record={displayedRecord} />
       ) : null}
       {requestFailed ? (
         <span className="max-w-32 truncate text-2xs text-danger" role="alert">
-          导出请求失败，请重试
+          匯出請求失敗，請重試
         </span>
       ) : null}
 
@@ -104,7 +104,7 @@ export function ExportControl({
           download={`rushes-v${downloadRecord.timeline_version}.mp4`}
         >
           <Download size={12} strokeWidth={1.75} aria-hidden />
-          下载 v{downloadRecord.timeline_version}
+          下載 v{downloadRecord.timeline_version}
         </a>
       ) : null}
       {retryRecord ? (
@@ -115,7 +115,7 @@ export function ExportControl({
           onClick={() => retryMutation.mutate(retryRecord.job_id)}
         >
           <RotateCcw size={12} strokeWidth={1.75} aria-hidden />
-          重试 v{retryRecord.timeline_version}
+          重試 v{retryRecord.timeline_version}
         </button>
       ) : null}
       {matchingRecord?.status === "succeeded" || matchingRecord?.retryable ? null : (
@@ -126,7 +126,7 @@ export function ExportControl({
           title={actionDisabled ? disabledReason : undefined}
           onClick={() => createMutation.mutate()}
         >
-          {mutationPending ? "提交中" : "导出"}
+          {mutationPending ? "提交中" : "匯出"}
         </button>
       )}
     </div>
@@ -135,12 +135,12 @@ export function ExportControl({
 
 function ExportStatus({ record }: { record: UserExportRecord }): ReactElement {
   if (record.status === "pending") {
-    return <span className="whitespace-nowrap text-2xs text-fg-muted">v{record.timeline_version} 已排队</span>;
+    return <span className="whitespace-nowrap text-2xs text-fg-muted">v{record.timeline_version} 已排隊</span>;
   }
   if (record.status === "running") {
     return (
       <span className="whitespace-nowrap text-2xs tabular-nums text-fg-muted" role="status">
-        v{record.timeline_version} 导出中 {Math.round(record.progress * 100)}%
+        v{record.timeline_version} 匯出中 {Math.round(record.progress * 100)}%
       </span>
     );
   }
@@ -151,7 +151,7 @@ function ExportStatus({ record }: { record: UserExportRecord }): ReactElement {
         role="status"
         title={record.error?.message}
       >
-        v{record.timeline_version} {record.status === "cancelled" ? "已取消" : "导出失败"}
+        v{record.timeline_version} {record.status === "cancelled" ? "已取消" : "匯出失敗"}
       </span>
     );
   }

@@ -47,7 +47,7 @@ export function PreviewPlayer({
       className={`flex w-full flex-col overflow-hidden border border-line bg-black text-white ${
         fit === "height" ? "h-full min-h-0" : ""
       }`}
-      aria-label="预览播放器"
+      aria-label="預覽播放器"
     >
       <div className={fit === "height" ? "relative min-h-0 flex-1" : "relative aspect-[9/16] w-full"}>
         <MediaProvider />
@@ -186,7 +186,7 @@ function PreviewPlayerControls({
         <button
           type="button"
           className="grid size-7 place-items-center rounded-sm bg-accent text-white transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-accent-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          aria-label={paused ? "播放" : "暂停"}
+          aria-label={paused ? "播放" : "暫停"}
           onClick={(event) => {
             if (paused) {
               remote.play(event.nativeEvent);
@@ -204,8 +204,8 @@ function PreviewPlayerControls({
         <button
           type="button"
           className="grid size-7 place-items-center rounded-sm text-fg-muted transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-hover hover:text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          aria-label="后退一帧"
-          title="后退一帧"
+          aria-label="後退一幀"
+          title="後退一幀"
           onClick={(event) => stepFrame(-1, event)}
         >
           <StepBack size={ICON_SIZE} strokeWidth={ICON_STROKE} />
@@ -213,8 +213,8 @@ function PreviewPlayerControls({
         <button
           type="button"
           className="grid size-7 place-items-center rounded-sm text-fg-muted transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-hover hover:text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-          aria-label="前进一帧"
-          title="前进一帧"
+          aria-label="前進一幀"
+          title="前進一幀"
           onClick={(event) => stepFrame(1, event)}
         >
           <StepForward size={ICON_SIZE} strokeWidth={ICON_STROKE} />
@@ -231,8 +231,8 @@ function PreviewPlayerControls({
             <button
               type="button"
               className="grid size-7 place-items-center rounded-sm text-fg-muted transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-hover hover:text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-              aria-label={muted ? "取消静音" : "静音"}
-              title={muted ? "取消静音" : "静音"}
+              aria-label={muted ? "取消靜音" : "靜音"}
+              title={muted ? "取消靜音" : "靜音"}
               onClick={(event) => remote.toggleMuted(event.nativeEvent)}
             >
               <VolumeIcon size={ICON_SIZE} strokeWidth={ICON_STROKE} />
@@ -242,8 +242,8 @@ function PreviewPlayerControls({
           <button
             type="button"
             className="grid size-7 place-items-center rounded-sm text-fg-muted transition-colors duration-[var(--duration-fast)] ease-standard hover:bg-hover hover:text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-            aria-label={fullscreen ? "退出全屏" : "全屏"}
-            title={fullscreen ? "退出全屏" : "全屏"}
+            aria-label={fullscreen ? "退出全螢幕" : "全螢幕"}
+            title={fullscreen ? "退出全螢幕" : "全螢幕"}
             onClick={(event) => remote.toggleFullscreen(undefined, event.nativeEvent)}
           >
             {fullscreen ? (
@@ -289,7 +289,7 @@ function ScrubBar({
       />
       <input
         type="range"
-        aria-label="播放进度"
+        aria-label="播放進度"
         min={0}
         max={duration || 0}
         step="any"

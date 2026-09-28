@@ -67,25 +67,25 @@ test("Go 主线：导入、理解、时间线、预览与用户最终导出", as
   // 1. 首页草稿墙 →「开始创作」= POST /drafts → 直接进编辑器（无表单）。
   await page.goto(`/#t=${TOKEN}`);
   await expect(page.getByRole("heading", { name: "草稿" })).toBeVisible();
-  await page.getByRole("button", { name: "开始创作", exact: true }).click();
+  await page.getByRole("button", { name: "開始創作", exact: true }).click();
   await expect(page).toHaveURL(/\/drafts\//);
-  await expect(page.getByRole("complementary", { name: "剪辑对话" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "剪接對話" })).toBeVisible();
   const draftAId = idFromUrl(page.url());
 
   // 2. 中栏素材面板导入 fixture（原生选择框 → reference 原地索引）→ 断言文件名出现。
-  await page.getByRole("button", { name: "导入素材" }).click();
+  await page.getByRole("button", { name: "匯入素材" }).click();
   await expect(page.getByText(FIXTURE_NAME)).toBeVisible();
   const assetId = await waitForImportedAsset(request, draftAId);
 
-  await page.getByLabel("消息输入").fill("E2E_FULL_MAINLINE");
-  await page.getByRole("button", { name: "发送" }).click();
+  await page.getByLabel("訊息輸入").fill("E2E_FULL_MAINLINE");
+  await page.getByRole("button", { name: "送出訊息" }).click();
   await expect(page.getByRole("status", { name: /素材理解中/ })).toHaveCount(0);
-  await expect(page.getByRole("img", { name: "时间线轨道图" })).toBeVisible({
+  await expect(page.getByRole("img", { name: "時間線軌道圖" })).toBeVisible({
     timeout: 60_000
   });
-  await expect(page.getByLabel("时间线版本")).toHaveCount(0);
+  await expect(page.getByLabel("時間線版本")).toHaveCount(0);
   const initialPreview = page
-    .getByLabel("Diffusion Studio 代理预览")
+    .getByLabel("Diffusion Studio 代理預覽")
     .or(page.getByRole("region", { name: "Video Player" }));
   await expect(initialPreview).toBeVisible({ timeout: 60_000 });
   // 先确认初版时间线的后台预览已落库，再提交手工裁剪。否则渲染 v1
@@ -142,10 +142,10 @@ test("Go 主线：导入、理解、时间线、预览与用户最终导出", as
   // 页面重载后必须从最新服务端时间线重建本地预览。将 WebGL canvas
   // 缩放到小型 2D canvas 取样，验收的是真实画面而不是“播放头有走”。
   await page.reload();
-  await expect(page.getByLabel("Diffusion Studio 代理预览")).toBeVisible({
+  await expect(page.getByLabel("Diffusion Studio 代理預覽")).toBeVisible({
     timeout: 60_000
   });
-  const previewProgress = page.getByRole("slider", { name: "预览进度" });
+  const previewProgress = page.getByRole("slider", { name: "預覽進度" });
   await previewProgress.press("Home");
   await expect
     .poll(async () => Number(await previewProgress.inputValue()))
@@ -160,15 +160,15 @@ test("Go 主线：导入、理解、时间线、预览与用户最终导出", as
   await expect
     .poll(async () => Number(await previewProgress.inputValue()), { timeout: 5_000 })
     .toBeGreaterThan(previewStart + 0.1);
-  await page.getByRole("button", { name: "暂停", exact: true }).click();
+  await page.getByRole("button", { name: "暫停", exact: true }).click();
 
   // 最终导出不再是 Agent tool/确认卡：用户只需显式触发，画幅由系统自动决定。
-  await expect(page.getByLabel("导出画幅")).toHaveCount(0);
-  await page.getByRole("button", { name: "导出", exact: true }).click();
+  await expect(page.getByLabel("匯出畫幅")).toHaveCount(0);
+  await page.getByRole("button", { name: "匯出", exact: true }).click();
   await expect(
-    page.getByRole("link", { name: `下载 v${trimmedTimeline.timeline_version}` })
+    page.getByRole("link", { name: `下載 v${trimmedTimeline.timeline_version}` })
   ).toBeVisible({ timeout: 60_000 });
-  await expect(page.getByRole("region", { name: /个问题待回答/ })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: /個問題待回答/ })).toHaveCount(0);
   const afterExport = await waitForDraft(request, draftAId, (draft) =>
     Boolean(draft.export_current_id)
   );

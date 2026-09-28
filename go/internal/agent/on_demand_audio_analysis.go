@@ -122,7 +122,7 @@ func (service *Service) executeHarnessAnalysisStep(
 	})
 	service.hub.Record(draftID, StreamEvent{
 		"type": TurnStreamToolStepProgress, "step_id": stepID, "tool": toolName,
-		"harness_owned": true, "progress": 0.5, "note": "正在确保按需分析证据",
+		"harness_owned": true, "progress": 0.5, "note": "正在準備所需分析證據",
 	})
 	result, err := execute()
 	durationMS := time.Since(startedAt).Milliseconds()

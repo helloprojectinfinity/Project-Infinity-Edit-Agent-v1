@@ -261,8 +261,8 @@ describe("DraftEditorView", () => {
     const fetchMock = mockFetch({ decision: null });
     renderEditor(fetchMock);
 
-    const timeline = screen.getByLabelText("时间线");
-    const chat = screen.getByLabelText("剪辑对话");
+    const timeline = screen.getByLabelText("時間線");
+    const chat = screen.getByLabelText("剪接對話");
     const workspace = screen.getByTestId("editor-workspace");
     expect(workspace.contains(timeline)).toBe(true);
     expect(workspace.contains(screen.getByTestId("materials-panel"))).toBe(true);
@@ -273,7 +273,7 @@ describe("DraftEditorView", () => {
     const fetchMock = mockFetch({ decision: null });
     renderEditor(fetchMock);
 
-    expect(screen.getByLabelText("调整素材面板宽度")).toBeTruthy();
+    expect(screen.getByLabelText("調整素材面板寬度")).toBeTruthy();
     const panel = screen.getByTestId("materials-panel");
     expect(panel.style.width).toBe(`${DEFAULT_MATERIALS_PANEL_WIDTH}px`);
 
@@ -289,9 +289,9 @@ describe("DraftEditorView", () => {
     vi.stubGlobal("confirm", confirmMock);
     renderEditor(fetchMock);
 
-    fireEvent.click(screen.getByRole("button", { name: "清空对话上下文" }));
+    fireEvent.click(screen.getByRole("button", { name: "清空對話上下文" }));
 
-    expect(confirmMock).toHaveBeenCalledWith(expect.stringContaining("素材、素材理解、时间线和预览都会保留"));
+    expect(confirmMock).toHaveBeenCalledWith(expect.stringContaining("素材、素材理解、時間線和預覽都會保留"));
     await waitFor(() => {
       expect(
         vi.mocked(fetchMock).mock.calls.some(
@@ -320,7 +320,7 @@ describe("DraftEditorView", () => {
     emitTurnStream(stream, { type: "turn_ended", outcome: "finished", reason: null });
     expect(await screen.findByText("这条上一轮流式消息应被清空")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "清空对话上下文" }));
+    fireEvent.click(screen.getByRole("button", { name: "清空對話上下文" }));
 
     await waitFor(() => expect(screen.queryByText("这条上一轮流式消息应被清空")).toBeNull());
   });
@@ -341,10 +341,10 @@ describe("DraftEditorView", () => {
     renderEditor(fetchMock);
 
     expect(
-      await screen.findByText("描述成片目标、节奏或要删除的内容。剪辑过程和工具调用会持续显示在这里。")
+      await screen.findByText("描述成片目標、節奏或要刪除的內容。剪接過程和工具呼叫會持續顯示在這裡。")
     ).toBeTruthy();
     expect(screen.queryByText("对话上下文已清空；素材、素材理解、时间线和预览均已保留。")).toBeNull();
-    expect(screen.queryByText("后台活动")).toBeNull();
+    expect(screen.queryByText("背景活動")).toBeNull();
   });
 
   it("从用户消息就地编辑并重发，撤销在途流式回复", async () => {
@@ -366,7 +366,7 @@ describe("DraftEditorView", () => {
     });
     renderEditor(fetchMock);
 
-    expect(await screen.findByText("已回退并折叠 2 条历史消息")).toBeTruthy();
+    expect(await screen.findByText("已回退並摺疊 2 條歷史訊息")).toBeTruthy();
     act(() => {
       emitTurnStream(turnStreamSource(), { type: "turn_started", turn_id: "turn-to-rewind" });
       emitTurnStream(turnStreamSource(), {
@@ -378,10 +378,10 @@ describe("DraftEditorView", () => {
     expect(await screen.findByText("即将撤销的流式回复")).toBeTruthy();
 
     // 用户消息气泡上出现「编辑并重发」，点击后就地编辑并确认重发。
-    fireEvent.click(await screen.findByRole("button", { name: "编辑并重发" }));
-    const editor = await screen.findByRole("textbox", { name: "编辑消息" });
+    fireEvent.click(await screen.findByRole("button", { name: "編輯並重發" }));
+    const editor = await screen.findByRole("textbox", { name: "編輯訊息" });
     fireEvent.change(editor, { target: { value: "改写第一版" } });
-    fireEvent.click(screen.getByRole("button", { name: "重发" }));
+    fireEvent.click(screen.getByRole("button", { name: "重發" }));
 
     await waitFor(() => {
       expect(resent).toContainEqual(
@@ -406,22 +406,22 @@ describe("DraftEditorView", () => {
     expect(
       vi.mocked(fetchMock).mock.calls.some(([input]) => String(input).endsWith("/costs"))
     ).toBe(false);
-    expect(screen.queryByText("设置")).toBeNull();
+    expect(screen.queryByText("設定")).toBeNull();
   });
 
   it("当前回合运行时仍可输入并把后续消息按顺序排队", async () => {
     const fetchMock = mockFetch({ decision: null });
     renderEditor(fetchMock);
 
-    const input = screen.getByLabelText("消息输入") as HTMLTextAreaElement;
+    const input = screen.getByLabelText("訊息輸入") as HTMLTextAreaElement;
     fireEvent.change(input, { target: { value: "剪掉开头 3 秒" } });
-    fireEvent.click(screen.getByRole("button", { name: "发送消息" }));
+    fireEvent.click(screen.getByRole("button", { name: "送出訊息" }));
 
-    await waitFor(() => expect(screen.getByText("新消息将按发送顺序排队")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("新訊息會按送出順序排隊")).toBeTruthy());
     expect(input.disabled).toBe(false);
     expect(screen.getByText("剪掉开头 3 秒")).toBeTruthy();
     expect(screen.getByTestId("turn-activity-indicator")).toBeTruthy();
-    expect(screen.getByText("正在读取上下文")).toBeTruthy();
+    expect(screen.getByText("正在讀取上下文")).toBeTruthy();
     expect(draftEventsSource().url).toContain("token=test-token");
 
     fireEvent.change(input, { target: { value: "然后把结尾淡出" } });
@@ -442,17 +442,17 @@ describe("DraftEditorView", () => {
 
     await waitFor(() => expect(input.disabled).toBe(false));
     expect(screen.queryByTestId("turn-activity-indicator")).toBeNull();
-    expect(screen.queryByText("新消息将按发送顺序排队")).toBeNull();
+    expect(screen.queryByText("新訊息會按送出順序排隊")).toBeNull();
   });
 
   it("重连重放到活跃回合时保持输入可用并显示排队反馈", async () => {
     const fetchMock = mockFetch({ decision: null });
     renderEditor(fetchMock);
 
-    const input = screen.getByLabelText("消息输入") as HTMLTextAreaElement;
+    const input = screen.getByLabelText("訊息輸入") as HTMLTextAreaElement;
     emitTurnStream(turnStreamSource(), { type: "turn_started", turn_id: "turn_replayed" });
 
-    await waitFor(() => expect(screen.getByText("新消息将按发送顺序排队")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("新訊息會按送出順序排隊")).toBeTruthy());
     expect(input.disabled).toBe(false);
     expect(screen.getByTestId("turn-activity-indicator")).toBeTruthy();
 
@@ -468,16 +468,16 @@ describe("DraftEditorView", () => {
     const fetchMock = mockFetch({ decision: null });
     renderEditor(fetchMock);
 
-    const input = screen.getByLabelText("消息输入") as HTMLTextAreaElement;
+    const input = screen.getByLabelText("訊息輸入") as HTMLTextAreaElement;
     fireEvent.change(input, { target: { value: "先分析节奏" } });
     fireEvent.keyDown(input, { key: "Enter", shiftKey: true });
     expect(input.disabled).toBe(false);
 
     fireEvent.keyDown(input, { key: "Enter" });
-    await waitFor(() => expect(screen.getByText("新消息将按发送顺序排队")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("新訊息會按送出順序排隊")).toBeTruthy());
     expect(input.disabled).toBe(false);
-    expect(screen.getByLabelText("停止当前任务")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "发送消息" })).toBeTruthy();
+    expect(screen.getByLabelText("停止當前任務")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "送出訊息" })).toBeTruthy();
     expect(screen.getByText("先分析节奏")).toBeTruthy();
   });
 
@@ -639,11 +639,11 @@ describe("DraftEditorView", () => {
     emitTurnStream(stream, { type: "tool_step_started", step_id: "s2", tool: "timeline.insert" });
     emitTurnStream(stream, { type: "tool_step_started", step_id: "s3", tool: "future.mystery_tool" });
 
-    const step1 = (await screen.findByText("更新时间线目标")).closest(
+    const step1 = (await screen.findByText("更新時間線目標")).closest(
       "[data-tool-step-id]"
     ) as HTMLElement;
     expect(step1.getAttribute("data-tool-status")).toBe("running");
-    expect(screen.getByText("插入时间线内容")).toBeTruthy();
+    expect(screen.getByText("插入時間線內容")).toBeTruthy();
     // 未映射的工具名原样展示
     expect(screen.getByText("future.mystery_tool")).toBeTruthy();
 
@@ -661,7 +661,7 @@ describe("DraftEditorView", () => {
     });
 
     await waitFor(() => expect(step1.getAttribute("data-tool-status")).toBe("succeeded"));
-    const step2 = screen.getByText("插入时间线内容").closest("[data-tool-step-id]") as HTMLElement;
+    const step2 = screen.getByText("插入時間線內容").closest("[data-tool-step-id]") as HTMLElement;
     expect(step2.getAttribute("data-tool-status")).toBe("failed");
   });
 
@@ -692,14 +692,14 @@ describe("DraftEditorView", () => {
 
     // 两条素材进度都渲染出来；带文件名的 note 只显示 note（不叠 asset_id）。
     expect(await screen.findByText("正在查看 IMG_2031.mp4 02:10 画面")).toBeTruthy();
-    const progressList = screen.getByLabelText("子代理进度");
+    const progressList = screen.getByLabelText("子代理進度");
     expect(within(progressList).getByText("转写音频中")).toBeTruthy();
     // 无文件名的通用文案用 asset_id 前缀区分并发素材。
     expect(within(progressList).getByText("asset_09f3")).toBeTruthy();
 
     // 进度行确实挂在 understand 工具行的同一容器里（不是独立漂浮在消息流末尾）。
     const detectRow = document.querySelector('[data-tool-step-id="s1"]') as HTMLElement;
-    expect(within(detectRow).getByText("检测镜头")).toBeTruthy();
+    expect(within(detectRow).getByText("偵測鏡頭")).toBeTruthy();
     expect(detectRow.parentElement?.contains(progressList)).toBe(true);
     expect(screen.queryByLabelText("素材理解中 3/20")).toBeNull();
     expect(screen.queryByRole("button", { name: "取消素材理解" })).toBeNull();
@@ -736,7 +736,7 @@ describe("DraftEditorView", () => {
     emitTurnStream(stream, { type: "tool_step_started", step_id: "s2", tool: "timeline.insert" });
 
     await waitFor(() => expect(screen.queryByText("转写音频中")).toBeNull());
-    expect(screen.queryByLabelText("子代理进度")).toBeNull();
+    expect(screen.queryByLabelText("子代理進度")).toBeNull();
   });
 
   it("turn-stream turn_ended 封口流式气泡并刷新历史消息", async () => {
@@ -949,7 +949,7 @@ describe("DraftEditorView", () => {
       />
     );
 
-    expect(screen.getByText("已回答 1 个问题")).toBeTruthy();
+    expect(screen.getByText("已回答 1 個問題")).toBeTruthy();
     expect(screen.getByText("这次希望采用哪种剪辑风格？")).toBeTruthy();
     expect(screen.queryByText("你的回答")).toBeNull();
     expect(screen.getByText("叙事")).toBeTruthy();
@@ -971,8 +971,8 @@ describe("DraftEditorView", () => {
       />
     );
 
-    expect(screen.getByText("回答已记录")).toBeTruthy();
-    expect(screen.getByText("已回答 1 个问题")).toBeTruthy();
+    expect(screen.getByText("回答已記錄")).toBeTruthy();
+    expect(screen.getByText("已回答 1 個問題")).toBeTruthy();
     expect(screen.queryByText("你的回答")).toBeNull();
     expect(screen.getByText("story")).toBeTruthy();
     expect(screen.queryByText(/正在读取详情/)).toBeNull();
@@ -1075,8 +1075,8 @@ describe("DraftEditorView", () => {
       />
     );
 
-    expect(screen.getByText("正在同步确认项")).toBeTruthy();
-    expect(screen.getByText("正在读取可选项")).toBeTruthy();
+    expect(screen.getByText("正在同步確認項")).toBeTruthy();
+    expect(screen.getByText("正在讀取可選項")).toBeTruthy();
     expect(screen.getByText(/00:00/)).toBeTruthy();
   });
 
@@ -1110,7 +1110,7 @@ describe("DraftEditorView", () => {
       />
     );
 
-    expect(screen.getByText("未知结构化事件：FutureEvent")).toBeTruthy();
+    expect(screen.getByText("未知結構化事件：FutureEvent")).toBeTruthy();
     expect(screen.getByText(/"extra": true/)).toBeTruthy();
   });
 
@@ -1143,8 +1143,8 @@ describe("DraftEditorView", () => {
     expect(items).toHaveLength(1);
     expect(items.find((item) => item.kind === "preview")).toMatchObject({
       id: "preview:latest",
-      title: "预览已生成",
-      description: "可在右侧查看预览。",
+      title: "預覽已生成",
+      description: "可在右側查看預覽。",
       occurrences: 2
     });
     expect(items.find((item) => item.kind === "timeline")).toBeUndefined();
@@ -1281,9 +1281,9 @@ describe("DraftEditorView", () => {
     );
 
     expect(screen.getByText("已完成")).toBeTruthy();
-    expect(screen.queryByText("处理中")).toBeNull();
+    expect(screen.queryByText("處理中")).toBeNull();
     expect(
-      screen.getByRole("progressbar", { name: "理解素材 进度" }).getAttribute("aria-valuenow")
+      screen.getByRole("progressbar", { name: "理解素材 進度" }).getAttribute("aria-valuenow")
     ).toBe("100");
   });
 
@@ -1305,12 +1305,12 @@ describe("DraftEditorView", () => {
 
     fireEvent.click(await screen.findByTestId("mock-select-video"));
     expect(await screen.findByText("海边日落人物")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "引用给 AI" }));
+    fireEvent.click(screen.getByRole("button", { name: "引用給 AI" }));
     expect(await screen.findByText("已引用")).toBeTruthy();
     expect(screen.getByText("海边日落人物 · 0.00–3.00 秒")).toBeTruthy();
-    expect(screen.queryByText("已选：")).toBeNull();
+    expect(screen.queryByText("已選：")).toBeNull();
 
-    const composer = screen.getByPlaceholderText("描述你想怎样剪辑…");
+    const composer = screen.getByPlaceholderText("描述你想怎樣剪接…");
     fireEvent.change(composer, { target: { value: "把这段放到高潮" } });
     fireEvent.keyDown(composer, { key: "Enter", code: "Enter" });
 
@@ -1337,8 +1337,8 @@ describe("DraftEditorView", () => {
 
     await screen.findByTestId("mock-timeline-seek");
     expect(consoleComponentMocks.timelineProps.at(-1)?.editing).toBe(true);
-    expect(screen.getByText("Agent 正在编辑")).toBeTruthy();
-    expect((screen.getByRole("button", { name: "导出" }) as HTMLButtonElement).disabled).toBe(
+    expect(screen.getByText("Agent 正在編輯")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "匯出" }) as HTMLButtonElement).disabled).toBe(
       true
     );
   });
@@ -1375,11 +1375,11 @@ describe("DraftEditorView", () => {
     renderEditor(fetchMock);
 
     await screen.findByTestId("mock-timeline-move");
-    const timeline = screen.getByRole("region", { name: "时间线" });
+    const timeline = screen.getByRole("region", { name: "時間線" });
     expect(timeline.firstElementChild?.classList.contains("scrollbar-none")).toBe(true);
     expect(
       screen
-        .getByRole("slider", { name: "时间线缩放" })
+        .getByRole("slider", { name: "時間線縮放" })
         .parentElement?.classList.contains("xl:inline-flex")
     ).toBe(true);
   });
@@ -1389,23 +1389,23 @@ describe("DraftEditorView", () => {
     renderEditor(fetchMock);
 
     await screen.findByTestId("mock-timeline-move");
-    const selectButton = screen.getByRole("button", { name: "选择 (V)" });
+    const selectButton = screen.getByRole("button", { name: "選擇 (V)" });
     expect(selectButton.getAttribute("aria-describedby")).toBeTruthy();
     fireEvent.mouseEnter(selectButton.parentElement!);
-    expect(screen.getByRole("tooltip").textContent).toContain("选择V");
-    expect(screen.getByRole("tooltip").textContent).toContain("选择片段");
+    expect(screen.getByRole("tooltip").textContent).toContain("選擇V");
+    expect(screen.getByRole("tooltip").textContent).toContain("選擇片段");
     fireEvent.mouseLeave(selectButton.parentElement!);
     expect(screen.queryByRole("tooltip")).toBeNull();
 
     const disabledSplit = screen.getByRole("button", { name: "分割" });
     expect(disabledSplit.hasAttribute("disabled")).toBe(true);
     fireEvent.mouseEnter(disabledSplit.parentElement!);
-    expect(screen.getByRole("tooltip").textContent).toContain("当前播放头位置");
+    expect(screen.getByRole("tooltip").textContent).toContain("目前播放頭位置");
     fireEvent.mouseLeave(disabledSplit.parentElement!);
 
-    const zoomIn = screen.getByRole("button", { name: "放大时间线" });
+    const zoomIn = screen.getByRole("button", { name: "放大時間線" });
     fireEvent.focus(zoomIn);
-    expect(screen.getByRole("tooltip").textContent).toContain("更精细的剪辑");
+    expect(screen.getByRole("tooltip").textContent).toContain("更精細的剪接");
     fireEvent.blur(zoomIn);
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
@@ -1425,7 +1425,7 @@ describe("DraftEditorView", () => {
         kind: "insert_subtitle",
         start_frame: 0,
         end_frame: 60,
-        text: "在这里输入字幕"
+        text: "在這裡輸入字幕"
       });
       expect(operation?.timeline_clip_id).toMatch(/^subtitle_manual_/);
     });
@@ -1436,7 +1436,7 @@ describe("DraftEditorView", () => {
     renderEditor(fetchMock);
 
     const move = await screen.findByTestId("mock-timeline-move");
-    fireEvent.click(screen.getByRole("button", { name: "覆盖" }));
+    fireEvent.click(screen.getByRole("button", { name: "覆蓋" }));
     fireEvent.click(move);
     await waitFor(() => {
       expect(manualPatchOperations(fetchMock)).toContainEqual({
@@ -1461,7 +1461,7 @@ describe("DraftEditorView", () => {
     renderEditor(fetchMock);
 
     fireEvent.click(await screen.findByTestId("mock-select-video"));
-    fireEvent.click(screen.getAllByRole("button", { name: "取消视频与原声绑定" })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: "解除影片與原聲連結" })[0]!);
     await waitFor(() => {
       expect(manualPatchOperations(fetchMock)).toContainEqual({
         kind: "set_clip_linked", timeline_clip_id: "tc_a", linked: false
@@ -1469,9 +1469,9 @@ describe("DraftEditorView", () => {
     });
 
     fireEvent.click(screen.getByTestId("mock-select-subtitle"));
-    const subtitleInput = await screen.findByRole("textbox", { name: "编辑字幕" });
+    const subtitleInput = await screen.findByRole("textbox", { name: "編輯字幕" });
     fireEvent.change(subtitleInput, { target: { value: "改好的字幕" } });
-    fireEvent.click(screen.getByRole("button", { name: "保存字幕" }));
+    fireEvent.click(screen.getByRole("button", { name: "儲存字幕" }));
     await waitFor(() => {
       expect(manualPatchOperations(fetchMock)).toContainEqual({
         kind: "edit_subtitle_text", timeline_clip_id: "subtitle_a", text: "改好的字幕"
@@ -1484,11 +1484,11 @@ describe("DraftEditorView", () => {
     renderEditor(fetchMock);
 
     fireEvent.click(await screen.findByTestId("mock-select-video"));
-    expect(await screen.findByText("已选：")).toBeTruthy();
+    expect(await screen.findByText("已選：")).toBeTruthy();
 
     fireEvent.click(screen.getByTestId("mock-timeline-deselect"));
 
-    await waitFor(() => expect(screen.queryByText("已选：")).toBeNull());
+    await waitFor(() => expect(screen.queryByText("已選：")).toBeNull());
   });
 
   it("选中片段后点击时间线外或按 Esc 会收起详情栏", async () => {
@@ -1496,14 +1496,14 @@ describe("DraftEditorView", () => {
     renderEditor(fetchMock);
 
     fireEvent.click(await screen.findByTestId("mock-select-video"));
-    expect(await screen.findByText("已选：")).toBeTruthy();
-    fireEvent.pointerDown(screen.getByPlaceholderText("描述你想怎样剪辑…"));
-    await waitFor(() => expect(screen.queryByText("已选：")).toBeNull());
+    expect(await screen.findByText("已選：")).toBeTruthy();
+    fireEvent.pointerDown(screen.getByPlaceholderText("描述你想怎樣剪接…"));
+    await waitFor(() => expect(screen.queryByText("已選：")).toBeNull());
 
     fireEvent.click(screen.getByTestId("mock-select-video"));
-    expect(await screen.findByText("已选：")).toBeTruthy();
+    expect(await screen.findByText("已選：")).toBeTruthy();
     fireEvent.keyDown(window, { key: "Escape" });
-    await waitFor(() => expect(screen.queryByText("已选：")).toBeNull());
+    await waitFor(() => expect(screen.queryByText("已選：")).toBeNull());
   });
 
   it("时间线缩放滑杆连续更新每秒像素密度", async () => {
@@ -1511,7 +1511,7 @@ describe("DraftEditorView", () => {
     renderEditor(fetchMock);
     await screen.findByTestId("mock-timeline-move");
 
-    fireEvent.change(screen.getByRole("slider", { name: "时间线缩放" }), {
+    fireEvent.change(screen.getByRole("slider", { name: "時間線縮放" }), {
       target: { value: "137" }
     });
 
@@ -1532,7 +1532,7 @@ describe("DraftEditorView", () => {
       });
     });
 
-    const trackGain = screen.getByRole("slider", { name: "所选轨道音量" });
+    const trackGain = screen.getByRole("slider", { name: "所選軌道音量" });
     fireEvent.change(trackGain, { target: { value: "-10" } });
     fireEvent.pointerUp(trackGain);
     await waitFor(() => {
@@ -1549,15 +1549,15 @@ describe("DraftEditorView", () => {
     fireEvent.click(await screen.findByTitle("clip.mp4"));
 
     // 预览区挂载素材试看（原片优先）+ 顶部工具条
-    expect(await screen.findByLabelText("clip.mp4 视频试看")).toBeTruthy();
-    expect(screen.getByText("试看 · clip.mp4")).toBeTruthy();
+    expect(await screen.findByLabelText("clip.mp4 影片試看")).toBeTruthy();
+    expect(screen.getByText("試看 · clip.mp4")).toBeTruthy();
 
     // 再次单击同一瓦片取消试看，回到「暂无时间线」占位
     fireEvent.click(await screen.findByTitle("clip.mp4"));
 
-    await waitFor(() => expect(screen.queryByLabelText("clip.mp4 视频试看")).toBeNull());
+    await waitFor(() => expect(screen.queryByLabelText("clip.mp4 影片試看")).toBeNull());
     // 预览区回到成片占位（时间线区也有同名占位，故按预览区作用域断言）
-    expect(within(screen.getByLabelText("预览区")).getByText(/暂无时间线/)).toBeTruthy();
+    expect(within(screen.getByLabelText("預覽區")).getByText(/暫無時間線/)).toBeTruthy();
   });
 
   it("流式 text_delta 高频更新期间不重渲染时间线子树（高频态已下沉到 ConsolePanel）", async () => {

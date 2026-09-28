@@ -149,8 +149,8 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
       if (recoveryAttempted) {
         await stopAsRecoverable(
           reason === "clock"
-            ? "浏览器暂停了音频时钟，点击播放即可继续"
-            : "预览解码再次停顿，已自动暂停；点击播放可继续"
+            ? "瀏覽器暫停了音訊時鐘，點擊播放即可繼續"
+            : "預覽解碼再次停頓，已自動暫停；點擊播放可繼續"
         );
         return;
       }
@@ -160,7 +160,7 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
       }
       recoveryAttempted = true;
       recoveryInFlight = true;
-      setPlaybackNotice("预览短暂停顿，正在自动恢复…");
+      setPlaybackNotice("預覽短暫停頓，正在自動恢復…");
       try {
         await engine.recoverPlayback();
         if (!cancelled) {
@@ -172,8 +172,8 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
         console.warn("Diffusion Studio 代理预览自动恢复失败", error);
         await stopAsRecoverable(
           reason === "clock"
-            ? "浏览器暂停了音频时钟，点击播放即可继续"
-            : "预览解码停顿，已自动暂停；点击播放可继续"
+            ? "瀏覽器暫停了音訊時鐘，點擊播放即可繼續"
+            : "預覽解碼停頓，已自動暫停；點擊播放可繼續"
         );
       } finally {
         recoveryInFlight = false;
@@ -323,7 +323,7 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
           seekSec={seekSec}
         />
         <span className="absolute right-2 top-2 rounded-sm bg-black/70 px-1.5 py-1 text-[9px] text-white/80">
-          当前时间线 · 稳定预览
+          目前時間線 · 穩定預覽
         </span>
       </div>
     );
@@ -332,22 +332,22 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
   return (
     <div
       className="flex h-full min-h-0 w-full flex-col overflow-hidden border border-line bg-black text-white"
-      aria-label="Diffusion Studio 代理预览"
+      aria-label="Diffusion Studio 代理預覽"
       data-preview-engine="diffusion-studio-core"
     >
       <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
         <div ref={hostRef} className="grid h-full w-full place-items-center overflow-hidden" />
         <span className="absolute right-2 top-2 rounded-sm bg-black/70 px-1.5 py-1 text-[9px] text-white/80">
-          Diffusion Core · 编辑代理
+          Diffusion Core · 編輯代理
         </span>
         {phase === "loading" ? (
           <div className="absolute inset-0 grid place-items-center bg-black/55 text-xs text-white/75">
-            正在准备本地即时预览…
+            正在準備本地即時預覽…
           </div>
         ) : null}
         {phase === "error" ? (
           <div className="absolute inset-0 grid place-items-center bg-black/70 px-6 text-center text-xs text-white/75" role="alert">
-            当前浏览器无法启动编辑代理预览；最终导出仍会读取原素材。
+            目前瀏覽器無法啟動編輯代理預覽；最終匯出仍會讀取原素材。
           </div>
         ) : null}
         {playbackNotice ? (
@@ -372,7 +372,7 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
           <button
             type="button"
             className="grid size-7 place-items-center rounded-sm bg-accent text-white disabled:opacity-40"
-            aria-label={playing ? "暂停" : "播放"}
+            aria-label={playing ? "暫停" : "播放"}
             disabled={phase !== "ready"}
             onClick={() => void togglePlayback()}
           >
@@ -381,7 +381,7 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
           <button
             type="button"
             className="grid size-7 place-items-center rounded-sm text-fg-muted hover:bg-hover hover:text-fg disabled:opacity-40"
-            aria-label="后退一帧"
+            aria-label="後退一幀"
             disabled={phase !== "ready"}
             onClick={() => void seek(currentSec - 1 / Math.max(1, timeline.fps))}
           >
@@ -390,7 +390,7 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
           <button
             type="button"
             className="grid size-7 place-items-center rounded-sm text-fg-muted hover:bg-hover hover:text-fg disabled:opacity-40"
-            aria-label="前进一帧"
+            aria-label="前進一幀"
             disabled={phase !== "ready"}
             onClick={() => void seek(currentSec + 1 / Math.max(1, timeline.fps))}
           >
@@ -516,10 +516,10 @@ export function PreviewScrubber({
       <input
         ref={inputRef}
         type="range"
-        aria-label="预览进度"
+        aria-label="預覽進度"
         aria-valuetext={`${formatTime(safeCurrent, fps)} / ${formatTime(safeDuration, fps)}`}
         aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home End"
-        title="拖动定位，方向键逐帧移动"
+        title="拖動定位，方向鍵逐幀移動"
         min={0}
         max={Math.max(safeDuration, 0.001)}
         step={frameStep}

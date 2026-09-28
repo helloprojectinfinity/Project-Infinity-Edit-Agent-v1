@@ -50,59 +50,59 @@ export function timelinePatchErrorMessage(error: unknown): string {
       const reason = Reflect.get(detail, "reason");
       if (typeof reason === "string" && reason.trim()) {
         if (reason === "timeline_locked_by_agent") {
-          return "Agent 正在编辑，请等待本轮结束后再修改时间线。";
+          return "Agent 正在編輯，請等待本輪結束後再修改時間線。";
         }
         return reason;
       }
     }
   }
-  return error instanceof Error ? error.message : "时间线修改失败";
+  return error instanceof Error ? error.message : "時間線修改失敗";
 }
 
 export function conversationClearErrorMessage(error: unknown): string {
   const reason = timelinePatchErrorMessage(error);
   if (reason === "turn_active") {
-    return "当前任务仍在运行，请先停止或等待本轮结束后再清空对话。";
+    return "當前任務仍在執行，請先停止或等待本輪結束後再清空對話。";
   }
-  return reason === "API 请求失败：409" ? "当前任务仍在运行，暂时不能清空对话。" : reason;
+  return error instanceof ApiError && error.status === 409 ? "當前任務仍在執行，暫時不能清空對話。" : reason;
 }
 
 export function jobCancelErrorMessage(error: unknown): string {
   const reason = timelinePatchErrorMessage(error);
-  if (reason === "job_not_cancellable" || reason === "API 请求失败：409") {
-    return "任务状态已变化，无法取消；已刷新当前状态。";
+  if (reason === "job_not_cancellable" || (error instanceof ApiError && error.status === 409)) {
+    return "任務狀態已變化，無法取消；已刷新當前狀態。";
   }
-  return `取消任务失败：${reason}`;
+  return `取消任務失敗：${reason}`;
 }
 
 export function resendErrorMessage(error: unknown): string {
   const reason = timelinePatchErrorMessage(error);
   if (reason === "resend_cancellation_timeout" || reason === "resend_in_progress") {
-    return "当前任务尚未安全停止，请稍后重试。";
+    return "當前任務尚未安全停止，請稍後重試。";
   }
   if (reason === "resend_checkpoint_unavailable") {
-    return "这条消息太早了，已无法回到它之前的状态。";
+    return "這條訊息太早了，已無法回到它之前的狀態。";
   }
   if (reason === "resend_message_not_found") {
-    return "这条消息已不存在，请刷新后重试。";
+    return "這條訊息已不存在，請刷新後重試。";
   }
   if (reason === "resend_message_not_editable") {
-    return "这条消息已被新的编辑覆盖，请刷新后重试。";
+    return "這條訊息已被新的編輯覆蓋，請刷新後重試。";
   }
   if (reason === "resend_job_state_changed") {
-    return "任务状态刚刚发生变化，请稍后重试。";
+    return "任務狀態剛剛發生變化，請稍後重試。";
   }
   if (reason === "resend_idempotency_key_reused") {
-    return "这次重发的参数已变化，请重新操作。";
+    return "這次重發的參數已變化，請重新操作。";
   }
   if (reason === "turn_queue_closed") {
-    return "剪辑任务队列已停止，请重启本地服务后再重发。";
+    return "剪接任務佇列已停止，請重啟本地服務後再重發。";
   }
   if (reason === "empty_message") {
-    return "消息内容不能为空。";
+    return "訊息內容不能為空。";
   }
-  if (reason === "version_conflict" || reason === "API 请求失败：409") {
-    return "草稿刚刚发生了变化，请刷新后重试。";
+  if (reason === "version_conflict" || (error instanceof ApiError && error.status === 409)) {
+    return "草稿剛剛發生了變化，請刷新後重試。";
   }
-  return `编辑重发失败：${reason}`;
+  return `編輯重發失敗：${reason}`;
 }

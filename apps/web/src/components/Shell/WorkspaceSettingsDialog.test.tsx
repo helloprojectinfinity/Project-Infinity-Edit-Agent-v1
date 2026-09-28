@@ -23,14 +23,14 @@ function memoryPayload(statement: string, manuallyRevisedAt: string) {
   };
 }
 
-describe("WorkspaceSettingsDialog 长期记忆就地编辑", () => {
+describe("WorkspaceSettingsDialog 長期記憶就地編輯", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("就地编辑保存期间「正在保存」可见，settled 后显示新 statement 与「手动修订」", async () => {
+  it("就地編輯儲存期間「正在儲存」可見，settled 後顯示新 statement 與「手動修訂」", async () => {
     storeAuthToken("e2e-token");
-    let statement = "成片节奏偏快";
+    let statement = "成片節奏偏快";
     let revisedAt = "";
     let releasePatch: () => void = () => {};
     const patchGate = new Promise<void>((resolve) => {
@@ -45,7 +45,7 @@ describe("WorkspaceSettingsDialog 长期记忆就地编辑", () => {
       if (url.includes("/api/memories/pacing") && method === "PATCH") {
         statement = JSON.parse(String(init?.body)).statement as string;
         revisedAt = "2026-07-18T01:00:00Z";
-        await patchGate; // 暂缓 settled，让「正在保存」可被观察
+        await patchGate; // 暫緩 settled，讓「正在儲存」可被觀察
         return jsonResponse(memoryPayload(statement, revisedAt));
       }
       return jsonResponse({});
@@ -59,31 +59,31 @@ describe("WorkspaceSettingsDialog 长期记忆就地编辑", () => {
       </QueryClientProvider>
     );
 
-    await screen.findByText("成片节奏偏快");
-    fireEvent.click(screen.getByRole("button", { name: "编辑长期记忆 pacing" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "编辑长期记忆 pacing" }), {
-      target: { value: "用户手动改为整体更紧凑" }
+    await screen.findByText("成片節奏偏快");
+    fireEvent.click(screen.getByRole("button", { name: "編輯長期記憶 pacing" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "編輯長期記憶 pacing" }), {
+      target: { value: "使用者手動改為整體更緊湊" }
     });
-    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    fireEvent.click(screen.getByRole("button", { name: "儲存" }));
 
-    // 保存 pending 期间保持编辑态且「正在保存」可见。
-    expect(await screen.findByRole("button", { name: "正在保存" })).toBeTruthy();
+    // 儲存 pending 期間保持編輯態且「正在儲存」可見。
+    expect(await screen.findByRole("button", { name: "正在儲存" })).toBeTruthy();
 
     releasePatch();
 
-    // settled 后退出编辑态，列表显示新 statement 与「手动修订」标。
-    await screen.findByText("用户手动改为整体更紧凑");
-    expect(await screen.findByText("手动修订")).toBeTruthy();
-    await waitFor(() => expect(screen.queryByRole("button", { name: "正在保存" })).toBeNull());
+    // settled 後退出編輯態，列表顯示新 statement 與「手動修訂」標。
+    await screen.findByText("使用者手動改為整體更緊湊");
+    expect(await screen.findByText("手動修訂")).toBeTruthy();
+    await waitFor(() => expect(screen.queryByRole("button", { name: "正在儲存" })).toBeNull());
   });
 
-  it("保存失败保留编辑态与草稿文本，并显示错误提示", async () => {
+  it("儲存失敗保留編輯態與草稿文字，並顯示錯誤提示", async () => {
     storeAuthToken("e2e-token");
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       const method = init?.method ?? "GET";
       if (url.endsWith("/api/memories") && method === "GET") {
-        return jsonResponse({ memories: [memoryPayload("成片节奏偏快", "")] });
+        return jsonResponse({ memories: [memoryPayload("成片節奏偏快", "")] });
       }
       if (url.includes("/api/memories/pacing") && method === "PATCH") {
         return new Response(JSON.stringify({ detail: "boom" }), { status: 500 });
@@ -99,16 +99,16 @@ describe("WorkspaceSettingsDialog 长期记忆就地编辑", () => {
       </QueryClientProvider>
     );
 
-    await screen.findByText("成片节奏偏快");
-    fireEvent.click(screen.getByRole("button", { name: "编辑长期记忆 pacing" }));
-    const textarea = screen.getByRole("textbox", { name: "编辑长期记忆 pacing" });
+    await screen.findByText("成片節奏偏快");
+    fireEvent.click(screen.getByRole("button", { name: "編輯長期記憶 pacing" }));
+    const textarea = screen.getByRole("textbox", { name: "編輯長期記憶 pacing" });
     fireEvent.change(textarea, { target: { value: "改了一半的草稿" } });
-    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    fireEvent.click(screen.getByRole("button", { name: "儲存" }));
 
-    await screen.findByText(/保存失败/);
-    // 仍在编辑态，草稿文本保留。
+    await screen.findByText(/儲存失敗/);
+    // 仍在編輯態，草稿文字保留。
     expect(
-      (screen.getByRole("textbox", { name: "编辑长期记忆 pacing" }) as HTMLTextAreaElement).value
+      (screen.getByRole("textbox", { name: "編輯長期記憶 pacing" }) as HTMLTextAreaElement).value
     ).toBe("改了一半的草稿");
   });
 });
