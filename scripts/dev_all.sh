@@ -47,7 +47,13 @@ load_dotenv "$ROOT/.env"
 # 解决 brew keg-only 不写入 PATH 的问题；找不到时退回系统 ffmpeg 并给出警告。
 FFMPEG_FULL_BIN="$(brew --prefix ffmpeg-full 2>/dev/null || true)/bin"
 if [[ -x "$FFMPEG_FULL_BIN/ffmpeg" && -x "$FFMPEG_FULL_BIN/ffprobe" ]]; then
-  if ! "$FFMPEG_FULL_BIN/ffmpeg" -hide_banner -filters 2>&1 | grep -qE ' [.]+ subtitles '; then
+  # 完整读取 filter 列表再匹配：避免 `grep -q` 提早关闭管道让 ffmpeg 收到 SIGPIPE。
+  # 把整段输出塞进子 shell，避免外层 set -euo pipefail 误把 ffmpeg 的退出码当真错。
+  if ! filters="$("$FFMPEG_FULL_BIN/ffmpeg" -hide_banner -filters 2>/dev/null || true)"; then
+    printf '\033[31m错误：%s 无法列出 filter；请重新执行 brew install ffmpeg-full 后再启动。\033[0m\n' "$FFMPEG_FULL_BIN/ffmpeg" >&2
+    exit 1
+  fi
+  if ! printf '%s\n' "$filters" | grep -qE ' [.]+ subtitles '; then
     printf '\033[31m错误：%s 缺少 subtitles filter；请重新执行 brew install ffmpeg-full 后再启动。\033[0m\n' "$FFMPEG_FULL_BIN/ffmpeg" >&2
     exit 1
   fi
