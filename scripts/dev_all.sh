@@ -91,6 +91,7 @@ API_PORT="${RUSHES_API_PORT:-8010}"
 WEB_PORT="${RUSHES_WEB_PORT:-8011}"
 # worker 度量端口取 API_PORT+2，避开 WEB_PORT(默认 API_PORT+1) 撞车（#95 H3 P1）。
 WORKER_METRICS_PORT="${RUSHES_WORKER_METRICS_PORT:-$((API_PORT + 2))}"
+LOCAL_STT_PORT="${RUSHES_LOCAL_STT_PORT:-8013}"
 WORKSPACE="${RUSHES_WORKSPACE_PATH:-$ROOT/.rushes}"
 case "$WORKSPACE" in
   /*) ;;
@@ -106,9 +107,9 @@ else
 fi
 BIN_DIR="$WORKSPACE/bin"
 
-for port in "$API_PORT" "$WEB_PORT" "$WORKER_METRICS_PORT"; do
+for port in "$API_PORT" "$WEB_PORT" "$WORKER_METRICS_PORT" "$LOCAL_STT_PORT"; do
   if port_in_use "$port"; then
-    echo "错误：端口 $port 已被占用。请设置 RUSHES_API_PORT / RUSHES_WEB_PORT 后重试。" >&2
+    echo "错误：端口 $port 已被占用。请设置 RUSHES_API_PORT / RUSHES_WEB_PORT / RUSHES_LOCAL_STT_PORT 后重试。" >&2
     exit 1
   fi
 done
@@ -129,6 +130,23 @@ mkdir -p "$BIN_DIR"
   go build -o "$BIN_DIR/rushes-worker" ./cmd/worker
 )
 
+LOCAL_STT_DIR="$ROOT/services/local-stt"
+LOCAL_STT_VENV="$WORKSPACE/.local-stt-venv"
+if [[ ! -x "$LOCAL_STT_VENV/bin/python" ]]; then
+  printf '\033[33m首次启动：正在准备本地 STT Python 环境（约数秒至数分钟）\033[0m\n'
+  if command -v uv >/dev/null 2>&1; then
+    (cd "$LOCAL_STT_DIR" && uv venv --python 3.12 "$LOCAL_STT_VENV" && uv pip install --python "$LOCAL_STT_VENV/bin/python" -e .) || {
+      echo "错误：本地 STT Python 环境准备失败。" >&2
+      exit 1
+    }
+  else
+    (cd "$LOCAL_STT_DIR" && python3 -m venv "$LOCAL_STT_VENV" && "$LOCAL_STT_VENV/bin/pip" install -e .) || {
+      echo "错误：本地 STT Python 环境准备失败；请先安装 uv 或 Python 3.12+。" >&2
+      exit 1
+    }
+  fi
+fi
+
 pids=()
 cleanup() {
   trap - EXIT INT TERM
@@ -141,6 +159,30 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+RUSHES_LOCAL_STT_URL="${RUSHES_LOCAL_STT_URL:-http://127.0.0.1:$LOCAL_STT_PORT}" \
+  RUSHES_LOCAL_STT_PORT="$LOCAL_STT_PORT" \
+  RUSHES_LOCAL_STT_HOST=127.0.0.1 \
+  "$LOCAL_STT_VENV/bin/python" -m rushes_stt &
+pids+=("$!")
+
+stt_ready=0
+for _ in $(seq 1 60); do
+  if curl --silent --fail "http://127.0.0.1:$LOCAL_STT_PORT/healthz" >/dev/null 2>&1; then
+    stt_ready=1
+    break
+  fi
+  if ! kill -0 "${pids[-1]}" 2>/dev/null; then
+    echo "错误：本地 STT 服务启动失败。" >&2
+    exit 1
+  fi
+  sleep 0.25
+done
+if [[ "$stt_ready" != 1 ]]; then
+  echo "错误：本地 STT 服务在 15 秒内未就绪。" >&2
+  exit 1
+fi
+
+RUSHES_LOCAL_STT_URL="http://127.0.0.1:$LOCAL_STT_PORT" \
 RUSHES_WORKSPACE_PATH="$WORKSPACE" RUSHES_API_TOKEN="$TOKEN" RUSHES_API_PORT="$API_PORT" \
   "$BIN_DIR/rushes-api" -env-file "$ROOT/.env" -workspace "$WORKSPACE" -port "$API_PORT" &
 pids+=("$!")
@@ -177,6 +219,7 @@ echo "  Rushes Go 全栈已启动："
 echo "  日常访问：http://127.0.0.1:$WEB_PORT"
 echo "  首次登录：http://127.0.0.1:$WEB_PORT/#t=$TOKEN"
 echo "  API :$API_PORT · workspace: $WORKSPACE · Ctrl+C 全停"
+echo "  STT :本地 Whisper http://127.0.0.1:$LOCAL_STT_PORT（首次请求时下载并加载模型）"
 echo "  日志 :$WORKSPACE/logs/{api,worker}.log（JSON 结构化，按大小轮转，同时镜像到本终端）"
 echo "  度量 :API http://127.0.0.1:$API_PORT/debug/metrics · worker http://127.0.0.1:$WORKER_METRICS_PORT/debug/metrics"
 echo "════════════════════════════════════════════════════"

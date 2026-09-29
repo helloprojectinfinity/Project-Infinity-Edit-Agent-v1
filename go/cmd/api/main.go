@@ -119,7 +119,16 @@ func run() error {
 	}
 	defer agentService.Close()
 	agentService.SetVisionModelLabel(chatVisionModelLabel(provider))
-	if key := os.Getenv("RUSHES_DASHSCOPE_API_KEY"); key != "" {
+	asrProvider, asrErr := config.ResolveASRProvider(os.Getenv(config.EnvASRProvider))
+	if asrErr != nil {
+		return asrErr
+	}
+	switch asrProvider {
+	case config.ProviderDashScopeASR:
+		key := strings.TrimSpace(os.Getenv("RUSHES_DASHSCOPE_API_KEY"))
+		if key == "" {
+			return errors.New("RUSHES_ASR_PROVIDER=dashscope 但未配置 RUSHES_DASHSCOPE_API_KEY")
+		}
 		asrModel := os.Getenv("RUSHES_DASHSCOPE_ASR_MODEL")
 		if asrModel == "" {
 			// 兼容已有本地配置；新配置统一使用不绑定模型家族的变量名。
@@ -133,6 +142,19 @@ func run() error {
 			return asrErr
 		}
 		agentService.SetSpeechRecognizer(recognizer)
+	case config.ProviderLocalSTT:
+		baseURL := strings.TrimRight(strings.TrimSpace(os.Getenv(config.EnvLocalSTTURL)), "/")
+		if baseURL == "" {
+			baseURL = config.DefaultLocalSTTURL
+		}
+		recognizer, asrErr := providers.NewLocalSTT(providers.LocalSTTConfig{
+			BaseURL: baseURL, Timeout: 90 * time.Second,
+		})
+		if asrErr != nil {
+			return asrErr
+		}
+		agentService.SetSpeechRecognizer(recognizer)
+		slog.Info("本地 STT 已装载", "base_url", baseURL)
 	}
 	// O1：消息/决策先经 reducer 落库、再进入内存 TurnQueue。若进程在两步之间
 	// 崩溃，启动时从持久状态推导未完成回合并补驱；监听端口前同步完成扫描，查询

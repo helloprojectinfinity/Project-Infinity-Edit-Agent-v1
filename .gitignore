@@ -27,3 +27,7 @@ e2e/test-results/
 go/bin/
 go/coverage*
 go/internal/api/openapi.compat.json
+
+# Python local STT service
+services/local-stt/.venv/
+services/local-stt/**/__pycache__/
