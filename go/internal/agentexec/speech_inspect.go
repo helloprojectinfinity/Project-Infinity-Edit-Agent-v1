@@ -1348,18 +1348,21 @@ func (exec *Executor) ensureSpeechTranscriptForAsset(
 	forceRefresh bool,
 ) (result rushestools.SpeechTranscribeResult, returnedErr error) {
 	if !forceRefresh {
-		if cached, cacheErr := storage.LatestTranscript(ctx, exec.database.Read(), asset.ID); cacheErr == nil &&
-			(TranscriptHasWordSchema(cached.Utterances) || cached.ProviderID == "sidecar-srt" ||
-				exec.speechRecognizer == nil) {
-			return summarizeSpeechTranscript(cached, asset, true)
-		} else if cacheErr != nil && !errors.Is(cacheErr, storage.ErrNotFound) {
+		cached, cacheErr := storage.LatestTranscript(ctx, exec.database.Read(), asset.ID)
+		switch {
+		case cacheErr == nil:
+			reuse, reuseErr := exec.reuseCachedSpeechTranscript(ctx, asset, cached, language)
+			if reuseErr != nil {
+				return rushestools.SpeechTranscribeResult{}, reuseErr
+			}
+			if reuse {
+				return summarizeSpeechTranscript(cached, asset, true)
+			}
+		case !errors.Is(cacheErr, storage.ErrNotFound):
 			return rushestools.SpeechTranscribeResult{}, cacheErr
 		}
 	}
 	analyzerVersion, err := exec.speechTranscriptAnalyzerVersion(ctx, asset)
-	if err != nil {
-		return rushestools.SpeechTranscribeResult{}, err
-	}
 	identity, err := newAssetAnalysisIdentity(
 		asset.Hash, TranscriptAnalysisType, analyzerVersion,
 		map[string]any{
@@ -1392,7 +1395,7 @@ func (exec *Executor) ensureSpeechTranscriptForAsset(
 			}
 		}
 		transcript, hit, buildErr := exec.loadOrBuildSpeechTranscript(
-			ctx, draftID, asset, language, forceRefresh, true,
+			ctx, draftID, asset, analyzerVersion, language, forceRefresh, true,
 		)
 		if buildErr != nil {
 			return buildErr
@@ -1425,18 +1428,109 @@ func (exec *Executor) ensureSpeechTranscriptForAsset(
 	return result, returnedErr
 }
 
+// transcriptMatchesAnalyzer reports whether a cached transcript can be reused
+// for the current recognizer and language hint.
+//
+// A transcript is only re-checked for staleness when its ProviderID is
+// recognizable as this recognizer's own output, i.e. it carries both the
+// stable provider family ("whisper:") and the current model+aligner identity.
+// That shape is "<family><model>:<aligner>:<language>" plus an alignment
+// suffix appended by the builder, so a language change, a model change, and an
+// aligner change each fail the check and force a rebuild.
+//
+// Everything else — sidecar SRTs, transcripts from other ASR providers, rows
+// seeded by fixtures or older builds — has provenance the recognizer cannot
+// vouch for. Those keep the pre-existing word-schema rule. Guessing from an
+// unfamiliar provider_id would throw away usable evidence and force a rebuild
+// that needs the original media, which is exactly the failure this replaces.
+func transcriptMatchesAnalyzer(
+	cached storage.Transcript, analyzerVersion, language, providerFamily string,
+) bool {
+	if cached.ProviderID == "sidecar-srt" {
+		return true
+	}
+	if !TranscriptHasWordSchema(cached.Utterances) {
+		return false
+	}
+	if providerFamily == "" || !strings.HasPrefix(cached.ProviderID, providerFamily) {
+		// Unknown provenance: not ours to invalidate.
+		return true
+	}
+	staticIdentity := strings.TrimSuffix(analyzerVersion, "/transcript-v1")
+	expected := providerFamily + staticIdentity + ":" + normalizedLanguageHint(language) + "+"
+	return strings.HasPrefix(cached.ProviderID, expected)
+}
+
+func normalizedLanguageHint(language string) string {
+	hint := strings.TrimSpace(language)
+	if hint == "" {
+		return "auto"
+	}
+	return hint
+}
+
+// reuseCachedSpeechTranscript decides whether an already-stored transcript can
+// be served without rebuilding it.
+//
+// It resolves the analyzer version only when the recognizer can vouch for the
+// row's provenance. Resolving it stats the media on disk, so doing it up front
+// would turn every cache hit into a filesystem dependency — a row seeded from
+// another provider, or a fixture, must stay servable even when the original
+// file is long gone.
+func (exec *Executor) reuseCachedSpeechTranscript(
+	ctx context.Context,
+	asset storage.Asset,
+	cached storage.Transcript,
+	language string,
+) (bool, error) {
+	if !TranscriptHasWordSchema(cached.Utterances) &&
+		cached.ProviderID != "sidecar-srt" && exec.speechRecognizer != nil {
+		return false, nil
+	}
+	family := exec.speechRecognizerFamily()
+	if family == "" || !strings.HasPrefix(cached.ProviderID, family) {
+		// Provenance the recognizer cannot vouch for: leave it alone.
+		return true, nil
+	}
+	analyzerVersion, err := exec.speechTranscriptAnalyzerVersion(ctx, asset)
+	if err != nil {
+		return false, err
+	}
+	return transcriptMatchesAnalyzer(cached, analyzerVersion, language, family), nil
+}
+
+// speechRecognizerFamily returns the configured recognizer's stable provider
+// family prefix, or "" when no recognizer is configured or it does not
+// implement contracts.SpeechTranscriptProvenance.
+func (exec *Executor) speechRecognizerFamily() string {
+	if exec.speechRecognizer == nil {
+		return ""
+	}
+	provenance, ok := exec.speechRecognizer.(contracts.SpeechTranscriptProvenance)
+	if !ok {
+		return ""
+	}
+	return provenance.ProviderFamily()
+}
+
 func (exec *Executor) materializeCachedTranscript(
 	ctx context.Context,
 	asset storage.Asset,
 	identity assetAnalysisIdentity,
 	analysis storage.AssetAnalysis,
 ) (storage.Transcript, error) {
+	providerID := InterfaceString(analysis.Result["provider_id"])
+	// The analysis row is the authority for *this* analyzer identity. The
+	// latest transcript may belong to a newer or different identity, so only
+	// reuse it when it carries the same provider stamp; otherwise rebuild the
+	// row from the payload this analysis actually describes.
 	if current, err := storage.LatestTranscript(ctx, exec.database.Read(), asset.ID); err == nil {
-		return current, nil
+		if providerID != "" && current.ProviderID == providerID {
+			return current, nil
+		}
 	} else if !errors.Is(err, storage.ErrNotFound) {
 		return storage.Transcript{}, err
 	}
-	providerID := InterfaceString(analysis.Result["provider_id"])
 	utterances, _ := analysis.Result["utterances"].([]any)
 	vadSegments, _ := analysis.Result["vad_segments"].([]any)
 	toMaps := func(values []any) ([]map[string]any, error) {
@@ -1791,14 +1885,20 @@ func (exec *Executor) loadOrBuildSpeechTranscript(
 	ctx context.Context,
 	draftID string,
 	asset storage.Asset,
+	analyzerVersion string,
 	language string,
 	forceRefresh bool,
 	requireWordSchema bool,
 ) (storage.Transcript, bool, error) {
 	if !forceRefresh {
 		if cached, err := storage.LatestTranscript(ctx, exec.database.Read(), asset.ID); err == nil {
-			if !requireWordSchema || TranscriptHasWordSchema(cached.Utterances) ||
-				cached.ProviderID == "sidecar-srt" || exec.speechRecognizer == nil {
+			// Same staleness rule as ensureSpeechTranscriptForAsset. Reusing the
+			// cache here without checking would hand back the row the caller
+			// just rejected, pinning the old model/language forever.
+			if transcriptMatchesAnalyzer(
+				cached, analyzerVersion, language, exec.speechRecognizerFamily(),
+			) && (!requireWordSchema || TranscriptHasWordSchema(cached.Utterances) ||
+				cached.ProviderID == "sidecar-srt" || exec.speechRecognizer == nil) {
 				return cached, true, nil
 			}
 		} else if !errors.Is(err, storage.ErrNotFound) {

@@ -616,3 +616,108 @@ func createSpeechFixtureAudioDuration(
 	}
 	return path
 }
+
+func TestTranscriptMatchesAnalyzerAcceptsCurrentIdentity(t *testing.T) {
+	t.Parallel()
+	words := []map[string]any{{
+		"id": "u1", "text": "x", "start_frame": 0, "end_frame": 30,
+		"words": []any{map[string]any{"text": "x"}},
+	}}
+	cases := []struct {
+		name         string
+		cached       storage.Transcript
+		analyzer     string
+		language     string
+		family       string
+		wantAccepted bool
+	}{
+		{
+			name:         "sidecar srt always matches",
+			cached:       storage.Transcript{ProviderID: "sidecar-srt"},
+			analyzer:     "whisper-large-v3:v1/transcript-v1",
+			family:       "whisper:",
+			wantAccepted: true,
+		},
+		{
+			name:         "matching language with frame alignment",
+			cached:       storage.Transcript{ProviderID: "whisper:whisper-large-v3:v1:yue+frame-alignment", Utterances: words},
+			analyzer:     "whisper-large-v3:v1/transcript-v1",
+			language:     "yue",
+			family:       "whisper:",
+			wantAccepted: true,
+		},
+		{
+			name:         "empty hint normalizes to auto",
+			cached:       storage.Transcript{ProviderID: "whisper:whisper-large-v3:v1:auto+frame-alignment", Utterances: words},
+			analyzer:     "whisper-large-v3:v1/transcript-v1",
+			language:     "",
+			family:       "whisper:",
+			wantAccepted: true,
+		},
+		{
+			name:         "different language invalidates cache",
+			cached:       storage.Transcript{ProviderID: "whisper:whisper-large-v3:v1:yue+frame-alignment", Utterances: words},
+			analyzer:     "whisper-large-v3:v1/transcript-v1",
+			language:     "zh",
+			family:       "whisper:",
+			wantAccepted: false,
+		},
+		{
+			name:         "aligner version bump invalidates cache",
+			cached:       storage.Transcript{ProviderID: "whisper:whisper-large-v3:v1:yue+frame-alignment", Utterances: words},
+			analyzer:     "whisper-large-v3:v2/transcript-v1",
+			language:     "yue",
+			family:       "whisper:",
+			wantAccepted: false,
+		},
+		{
+			name:         "model version bump invalidates cache",
+			cached:       storage.Transcript{ProviderID: "whisper:whisper-small:v1:yue+frame-alignment", Utterances: words},
+			analyzer:     "whisper-large-v3:v1/transcript-v1",
+			language:     "yue",
+			family:       "whisper:",
+			wantAccepted: false,
+		},
+		{
+			name:         "no word schema invalidates cache",
+			cached:       storage.Transcript{ProviderID: "whisper:whisper-large-v3:v1:yue+frame-alignment"},
+			analyzer:     "whisper-large-v3:v1/transcript-v1",
+			language:     "yue",
+			family:       "whisper:",
+			wantAccepted: false,
+		},
+		{
+			name:         "recognizer without provenance support accepts any row",
+			cached:       storage.Transcript{ProviderID: "whisper:whisper-small:v1:zh+frame-alignment", Utterances: words},
+			analyzer:     "whisper-large-v3:v1/transcript-v1",
+			language:     "zh",
+			family:       "",
+			wantAccepted: true,
+		},
+		{
+			name:         "foreign provider id is left alone",
+			cached:       storage.Transcript{ProviderID: "issue-140-fixture", Utterances: words},
+			analyzer:     "whisper-large-v3:v1/transcript-v1",
+			language:     "zh",
+			family:       "whisper:",
+			wantAccepted: true,
+		},
+		{
+			name:         "other recognizer family is left alone",
+			cached:       storage.Transcript{ProviderID: "fake-asr+frame-alignment", Utterances: words},
+			analyzer:     "fake-asr/transcript-v1",
+			language:     "yue",
+			family:       "whisper:",
+			wantAccepted: true,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := transcriptMatchesAnalyzer(tc.cached, tc.analyzer, tc.language, tc.family)
+			if got != tc.wantAccepted {
+				t.Errorf("transcriptMatchesAnalyzer=%v want %v (cached=%q analyzer=%q lang=%q family=%q)",
+					got, tc.wantAccepted, tc.cached.ProviderID, tc.analyzer, tc.language, tc.family)
+			}
+		})
+	}
+}

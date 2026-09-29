@@ -22,6 +22,15 @@ const (
 	localSTTMaxUploadBytes = 25 * 1024 * 1024
 	localSTTDefaultModel   = "whisper-large-v3"
 	localSTTDefaultAligner = "v1"
+	// localSTTProviderFamily 在模型与 aligner 版本变化时保持不变，用来识别
+	// 「这条 transcript 确实是本识别器产出的」。换成另一套模型时前缀不变，
+	// 后面的模型段才变，缓存层才能既认得出归属、又校验得出是否过期。
+	localSTTProviderFamily = "whisper"
+
+	// Status values the service reports. Anything else means the reply does not
+	// match the contract and must not be treated as a successful transcription.
+	localSTTStatusSucceeded = "succeeded"
+	localSTTStatusNoSpeech  = "no_speech"
 )
 
 // LocalSTTConfig describes the local STT service connection.
@@ -67,10 +76,30 @@ func NewLocalSTT(config LocalSTTConfig) (*LocalSTT, error) {
 	}, nil
 }
 
-// AnalysisIdentity is persisted in the transcript cache. Changing the model or
-// aligner version invalidates cache rows.
+// ProviderFamily 实现 contracts.SpeechTranscriptProvenance，返回跨模型版本
+// 稳定的归属前缀。
+func (recognizer *LocalSTT) ProviderFamily() string {
+	return localSTTProviderFamily + ":"
+}
+
+// AnalysisIdentity is the static part of the cache fingerprint persisted with
+// every transcript. The Python service speaks through this identity plus the
+// per-request language hint (or "auto"). Changing the model version, aligner
+// version, or base URL family invalidates cache rows downstream.
 func (recognizer *LocalSTT) AnalysisIdentity() string {
-	return recognizer.modelVersion + ":auto:" + recognizer.alignerVersion
+	return recognizer.modelVersion + ":" + recognizer.alignerVersion
+}
+
+// LanguageIdentity composes the static identity with the per-request language
+// hint. Empty hint maps to "auto". The result is what the recognizer stamps
+// on each result, so the cache layer can both recognize its own rows and check
+// whether they were produced with the same model, aligner, and language.
+func (recognizer *LocalSTT) LanguageIdentity(language string) string {
+	hint := strings.TrimSpace(language)
+	if hint == "" {
+		hint = "auto"
+	}
+	return recognizer.ProviderFamily() + recognizer.AnalysisIdentity() + ":" + hint
 }
 
 // Recognize uploads the audio bytes to the local service and parses the
@@ -97,25 +126,51 @@ func (recognizer *LocalSTT) Recognize(
 	if err != nil {
 		return contracts.SpeechRecognitionResult{}, err
 	}
-	if strings.TrimSpace(body.Text) == "" {
+	// Validate the contract before interpreting it. Without the status field a
+	// wrong-shaped reply — a proxy error page, a future service version, an
+	// empty object — would be read as "the audio had no speech", silently
+	// dropping a real failure into an empty transcript.
+	switch body.Status {
+	case localSTTStatusSucceeded:
+	case localSTTStatusNoSpeech:
 		return contracts.SpeechRecognitionResult{}, contracts.ErrSpeechNoWords
+	default:
+		return contracts.SpeechRecognitionResult{}, fmt.Errorf(
+			"本地 STT 响应 status=%q 不是 %q 或 %q",
+			body.Status, localSTTStatusSucceeded, localSTTStatusNoSpeech,
+		)
+	}
+	if strings.TrimSpace(body.Text) == "" {
+		return contracts.SpeechRecognitionResult{}, errors.New("本地 STT 响应 status=succeeded 但没有 text")
+	}
+	if len(body.Segments) == 0 {
+		return contracts.SpeechRecognitionResult{}, errors.New("本地 STT 响应缺少 segments")
 	}
 
 	result := contracts.SpeechRecognitionResult{
 		Text:       strings.TrimSpace(body.Text),
 		Language:   strings.TrimSpace(body.Language),
-		ProviderID: strings.TrimSpace(body.Provider),
+		ProviderID: recognizer.LanguageIdentity(request.Language),
 	}
-	if result.ProviderID == "" {
-		result.ProviderID = recognizer.modelVersion
-	}
-	for _, segment := range body.Segments {
+	for index, segment := range body.Segments {
+		if segment.EndMilliseconds < segment.BeginMilliseconds {
+			return contracts.SpeechRecognitionResult{}, fmt.Errorf(
+				"本地 STT segment %d 时间戳倒置: begin=%d end=%d",
+				index, segment.BeginMilliseconds, segment.EndMilliseconds,
+			)
+		}
 		converted := contracts.SpeechRecognitionSegment{
 			Text:              strings.TrimSpace(segment.Text),
 			BeginMilliseconds: segment.BeginMilliseconds,
 			EndMilliseconds:   segment.EndMilliseconds,
 		}
-		for _, word := range segment.Words {
+		for wordIndex, word := range segment.Words {
+			if word.EndMilliseconds < word.BeginMilliseconds {
+				return contracts.SpeechRecognitionResult{}, fmt.Errorf(
+					"本地 STT segment %d word %d 时间戳倒置: begin=%d end=%d",
+					index, wordIndex, word.BeginMilliseconds, word.EndMilliseconds,
+				)
+			}
 			converted.Words = append(converted.Words, contracts.SpeechRecognitionWord{
 				Text:              word.Text,
 				BeginMilliseconds: word.BeginMilliseconds,
@@ -178,6 +233,7 @@ type localSTTResponse struct {
 	Text     string           `json:"text"`
 	Language string           `json:"language"`
 	Provider string           `json:"provider"`
+	Status   string           `json:"status"`
 	Segments []localSTTSegment `json:"segments"`
 }
 

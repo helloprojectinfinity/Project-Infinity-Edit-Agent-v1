@@ -23,6 +23,15 @@ const EnvASRProvider = "RUSHES_ASR_PROVIDER"
 // EnvLocalSTTURL is the HTTP base URL of the local STT service.
 const EnvLocalSTTURL = "RUSHES_LOCAL_STT_URL"
 
+// EnvLocalSTTModel names the Whisper checkpoint the service loads. It feeds the
+// cache identity, so switching models has to invalidate stored transcripts;
+// the value must therefore match the service's own RUSHES_LOCAL_STT_MODEL.
+const EnvLocalSTTModel = "RUSHES_LOCAL_STT_MODEL"
+
+// EnvLocalSTTAlignerVersion is the local alignment version. Bump it whenever
+// the word-to-frame alignment changes so cached transcripts are rebuilt.
+const EnvLocalSTTAlignerVersion = "RUSHES_LOCAL_STT_ALIGNER_VERSION"
+
 // DefaultLocalSTTURL is the in-process base URL used when RUSHES_LOCAL_STT_URL
 // is unset. The Python service started by scripts/dev_all.sh listens here.
 const DefaultLocalSTTURL = "http://127.0.0.1:8013"

@@ -148,13 +148,19 @@ func run() error {
 			baseURL = config.DefaultLocalSTTURL
 		}
 		recognizer, asrErr := providers.NewLocalSTT(providers.LocalSTTConfig{
-			BaseURL: baseURL, Timeout: 90 * time.Second,
+			BaseURL:        baseURL,
+			Timeout:        90 * time.Second,
+			ModelVersion:   os.Getenv(config.EnvLocalSTTModel),
+			AlignerVersion: os.Getenv(config.EnvLocalSTTAlignerVersion),
 		})
 		if asrErr != nil {
 			return asrErr
 		}
 		agentService.SetSpeechRecognizer(recognizer)
-		slog.Info("本地 STT 已装载", "base_url", baseURL)
+		slog.Info(
+			"本地 STT 已装载", "base_url", baseURL,
+			"model", os.Getenv(config.EnvLocalSTTModel), "aligner", os.Getenv(config.EnvLocalSTTAlignerVersion),
+		)
 	}
 	// O1：消息/决策先经 reducer 落库、再进入内存 TurnQueue。若进程在两步之间
 	// 崩溃，启动时从持久状态推导未完成回合并补驱；监听端口前同步完成扫描，查询

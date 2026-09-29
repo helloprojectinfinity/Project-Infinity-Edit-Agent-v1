@@ -43,3 +43,14 @@ type SpeechRecognitionResult struct {
 type SpeechRecognizer interface {
 	Recognize(context.Context, SpeechRecognitionRequest) (SpeechRecognitionResult, error)
 }
+
+// SpeechTranscriptProvenance 是 SpeechRecognizer 的可选扩展：只有能确认
+// 某条 transcript 确实由自己产出时，才实现它。
+//
+// ProviderFamily 必须在模型版本与 aligner 版本变化时保持稳定，用来把
+// 「本识别器产出的 transcript」与「其他来源的 transcript」区分开。
+// 缓存层据此判断能否校验语言：认得出的才校验，认不出的按未知来源处理，
+// 绝不能因为读不懂 provider_id 就判定缓存过期。
+type SpeechTranscriptProvenance interface {
+	ProviderFamily() string
+}

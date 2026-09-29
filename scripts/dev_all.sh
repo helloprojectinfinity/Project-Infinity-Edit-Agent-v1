@@ -48,15 +48,20 @@ load_dotenv "$ROOT/.env"
 FFMPEG_FULL_BIN="$(brew --prefix ffmpeg-full 2>/dev/null || true)/bin"
 if [[ -x "$FFMPEG_FULL_BIN/ffmpeg" && -x "$FFMPEG_FULL_BIN/ffprobe" ]]; then
   # 完整读取 filter 列表再匹配：避免 `grep -q` 提早关闭管道让 ffmpeg 收到 SIGPIPE。
-  # 把整段输出塞进子 shell，避免外层 set -euo pipefail 误把 ffmpeg 的退出码当真错。
-  if ! filters="$("$FFMPEG_FULL_BIN/ffmpeg" -hide_banner -filters 2>/dev/null || true)"; then
+  # 用临时文件而不是命令替换，命令替换会把 ffmpeg 的退出码吞掉，
+  # 那样 `|| true` 之后的 if 判断永远不会成立，坏掉的 ffmpeg 反而能通过检查。
+  filters_file="$(mktemp)"
+  if ! "$FFMPEG_FULL_BIN/ffmpeg" -hide_banner -filters >"$filters_file" 2>/dev/null; then
+    rm -f "$filters_file"
     printf '\033[31m错误：%s 无法列出 filter；请重新执行 brew install ffmpeg-full 后再启动。\033[0m\n' "$FFMPEG_FULL_BIN/ffmpeg" >&2
     exit 1
   fi
-  if ! printf '%s\n' "$filters" | grep -qE ' [.]+ subtitles '; then
+  if ! grep -qE ' [.]+ subtitles ' "$filters_file"; then
+    rm -f "$filters_file"
     printf '\033[31m错误：%s 缺少 subtitles filter；请重新执行 brew install ffmpeg-full 后再启动。\033[0m\n' "$FFMPEG_FULL_BIN/ffmpeg" >&2
     exit 1
   fi
+  rm -f "$filters_file"
   export PATH="$FFMPEG_FULL_BIN:$PATH"
 else
   printf '\033[33m警告：未检测到 ffmpeg-full；subtitles 字幕渲染可能不可用。请执行 brew install ffmpeg-full。\033[0m\n' >&2
@@ -113,13 +118,6 @@ else
 fi
 BIN_DIR="$WORKSPACE/bin"
 
-for port in "$API_PORT" "$WEB_PORT" "$WORKER_METRICS_PORT" "$LOCAL_STT_PORT"; do
-  if port_in_use "$port"; then
-    echo "错误：端口 $port 已被占用。请设置 RUSHES_API_PORT / RUSHES_WEB_PORT / RUSHES_LOCAL_STT_PORT 后重试。" >&2
-    exit 1
-  fi
-done
-
 CHAT_PROVIDER="$(printf '%s' "${RUSHES_CHAT_PROVIDER:-dashscope}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
 if [[ "$CHAT_PROVIDER" == "dashscope" && -z "${RUSHES_DASHSCOPE_API_KEY:-}" ]]; then
   printf '\033[33m警告：未配置 RUSHES_DASHSCOPE_API_KEY；本地链路可运行，但 Agent 会使用无模型降级回复。\033[0m\n' >&2
@@ -129,6 +127,33 @@ elif [[ "$CHAT_PROVIDER" == "openrouter" && -z "${RUSHES_OPENROUTER_API_KEY:-}" 
   printf '\033[33m警告：RUSHES_CHAT_PROVIDER=openrouter 但未配置 RUSHES_OPENROUTER_API_KEY；API 与 worker 会在启动期报错。\033[0m\n' >&2
 fi
 
+ASR_PROVIDER="$(printf '%s' "${RUSHES_ASR_PROVIDER:-local}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+# 只有 dev_all 负责启停本地 STT 时才预留端口；自管 URL 或选 dashscope 时让用户自己管。
+manage_local_stt=0
+case "$ASR_PROVIDER" in
+  dashscope) manage_local_stt=0 ;;
+  local)
+    if [[ -z "${RUSHES_LOCAL_STT_URL:-}" ]]; then
+      manage_local_stt=1
+    fi
+    ;;
+  *)
+    echo "错误：RUSHES_ASR_PROVIDER=$ASR_PROVIDER 非法，合法值为 local 或 dashscope。" >&2
+    exit 1
+    ;;
+esac
+
+ports_to_check=("$API_PORT" "$WEB_PORT" "$WORKER_METRICS_PORT")
+if [[ "$manage_local_stt" == 1 ]]; then
+  ports_to_check+=("$LOCAL_STT_PORT")
+fi
+for port in "${ports_to_check[@]}"; do
+  if port_in_use "$port"; then
+    echo "错误：端口 $port 已被占用。请设置 RUSHES_API_PORT / RUSHES_WEB_PORT / RUSHES_LOCAL_STT_PORT 后重试。" >&2
+    exit 1
+  fi
+done
+
 mkdir -p "$BIN_DIR"
 (
   cd "$ROOT/go"
@@ -136,62 +161,71 @@ mkdir -p "$BIN_DIR"
   go build -o "$BIN_DIR/rushes-worker" ./cmd/worker
 )
 
-LOCAL_STT_DIR="$ROOT/services/local-stt"
-LOCAL_STT_VENV="$WORKSPACE/.local-stt-venv"
-if [[ ! -x "$LOCAL_STT_VENV/bin/python" ]]; then
-  printf '\033[33m首次启动：正在准备本地 STT Python 环境（约数秒至数分钟）\033[0m\n'
-  if command -v uv >/dev/null 2>&1; then
-    (cd "$LOCAL_STT_DIR" && uv venv --python 3.12 "$LOCAL_STT_VENV" && uv pip install --python "$LOCAL_STT_VENV/bin/python" -e .) || {
-      echo "错误：本地 STT Python 环境准备失败。" >&2
-      exit 1
-    }
-  else
-    (cd "$LOCAL_STT_DIR" && python3 -m venv "$LOCAL_STT_VENV" && "$LOCAL_STT_VENV/bin/pip" install -e .) || {
-      echo "错误：本地 STT Python 环境准备失败；请先安装 uv 或 Python 3.12+。" >&2
-      exit 1
-    }
-  fi
-fi
-
-pids=()
+# 子进程 PID 用命名变量保存：macOS 系统 Bash 3.2 不支持 ${arr[-1]} 之类的负索引。
+# 四个变量必须先全部初始化：cleanup 会在任何一个子进程启动之前就可能被 trap
+# 触发，set -u 下未定义变量会让清理本身报错，反而盖掉真正的失败原因。
+stt_pid=""
+api_pid=""
+worker_pid=""
+web_pid=""
 cleanup() {
   trap - EXIT INT TERM
-  for pid in "${pids[@]}"; do
-    kill "$pid" 2>/dev/null || true
-  done
-  for pid in "${pids[@]}"; do
-    wait "$pid" 2>/dev/null || true
-  done
+  [[ -n "$stt_pid" ]] && kill "$stt_pid" 2>/dev/null || true
+  [[ -n "$api_pid" ]] && kill "$api_pid" 2>/dev/null || true
+  [[ -n "$worker_pid" ]] && kill "$worker_pid" 2>/dev/null || true
+  [[ -n "$web_pid" ]] && kill "$web_pid" 2>/dev/null || true
+  [[ -n "$stt_pid" ]] && wait "$stt_pid" 2>/dev/null || true
+  [[ -n "$api_pid" ]] && wait "$api_pid" 2>/dev/null || true
+  [[ -n "$worker_pid" ]] && wait "$worker_pid" 2>/dev/null || true
+  [[ -n "$web_pid" ]] && wait "$web_pid" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 
-RUSHES_LOCAL_STT_URL="${RUSHES_LOCAL_STT_URL:-http://127.0.0.1:$LOCAL_STT_PORT}" \
-  RUSHES_LOCAL_STT_PORT="$LOCAL_STT_PORT" \
-  RUSHES_LOCAL_STT_HOST=127.0.0.1 \
-  "$LOCAL_STT_VENV/bin/python" -m rushes_stt &
-pids+=("$!")
-
-stt_ready=0
-for _ in $(seq 1 60); do
-  if curl --silent --fail "http://127.0.0.1:$LOCAL_STT_PORT/healthz" >/dev/null 2>&1; then
-    stt_ready=1
-    break
+if [[ "$manage_local_stt" == 1 ]]; then
+  LOCAL_STT_DIR="$ROOT/services/local-stt"
+  LOCAL_STT_VENV="$WORKSPACE/.local-stt-venv"
+  if [[ ! -x "$LOCAL_STT_VENV/bin/python" ]]; then
+    printf '\033[33m首次启动：正在准备本地 STT Python 环境（约数秒至数分钟）\033[0m\n'
+    if command -v uv >/dev/null 2>&1; then
+      (cd "$LOCAL_STT_DIR" && uv venv --python 3.12 "$LOCAL_STT_VENV" && uv pip install --python "$LOCAL_STT_VENV/bin/python" -e .) || {
+        echo "错误：本地 STT Python 环境准备失败。" >&2
+        exit 1
+      }
+    else
+      (cd "$LOCAL_STT_DIR" && python3 -m venv "$LOCAL_STT_VENV" && "$LOCAL_STT_VENV/bin/pip" install -e .) || {
+        echo "错误：本地 STT Python 环境准备失败；请先安装 uv 或 Python 3.12+。" >&2
+        exit 1
+      }
+    fi
   fi
-  if ! kill -0 "${pids[-1]}" 2>/dev/null; then
-    echo "错误：本地 STT 服务启动失败。" >&2
+
+  RUSHES_LOCAL_STT_URL="http://127.0.0.1:$LOCAL_STT_PORT" \
+    RUSHES_LOCAL_STT_PORT="$LOCAL_STT_PORT" \
+    RUSHES_LOCAL_STT_HOST=127.0.0.1 \
+    "$LOCAL_STT_VENV/bin/python" -m rushes_stt &
+  stt_pid="$!"
+
+  stt_ready=0
+  for _ in $(seq 1 60); do
+    if curl --silent --fail "http://127.0.0.1:$LOCAL_STT_PORT/healthz" >/dev/null 2>&1; then
+      stt_ready=1
+      break
+    fi
+    if ! kill -0 "$stt_pid" 2>/dev/null; then
+      echo "错误：本地 STT 服务启动失败。" >&2
+      exit 1
+    fi
+    sleep 0.25
+  done
+  if [[ "$stt_ready" != 1 ]]; then
+    echo "错误：本地 STT 服务在 15 秒内未就绪。" >&2
     exit 1
   fi
-  sleep 0.25
-done
-if [[ "$stt_ready" != 1 ]]; then
-  echo "错误：本地 STT 服务在 15 秒内未就绪。" >&2
-  exit 1
 fi
 
-RUSHES_LOCAL_STT_URL="http://127.0.0.1:$LOCAL_STT_PORT" \
 RUSHES_WORKSPACE_PATH="$WORKSPACE" RUSHES_API_TOKEN="$TOKEN" RUSHES_API_PORT="$API_PORT" \
   "$BIN_DIR/rushes-api" -env-file "$ROOT/.env" -workspace "$WORKSPACE" -port "$API_PORT" &
-pids+=("$!")
+api_pid="$!"
 
 ready=0
 for _ in $(seq 1 120); do
@@ -199,7 +233,7 @@ for _ in $(seq 1 120); do
     ready=1
     break
   fi
-  if ! kill -0 "${pids[0]}" 2>/dev/null; then
+  if ! kill -0 "$api_pid" 2>/dev/null; then
     echo "错误：Rushes API 启动失败。" >&2
     exit 1
   fi
@@ -212,12 +246,12 @@ fi
 
 RUSHES_WORKSPACE_PATH="$WORKSPACE" RUSHES_WORKER_METRICS_ADDR="127.0.0.1:$WORKER_METRICS_PORT" \
   "$BIN_DIR/rushes-worker" -env-file "$ROOT/.env" -workspace "$WORKSPACE" &
-pids+=("$!")
+worker_pid="$!"
 
 env -u RUSHES_DASHSCOPE_API_KEY -u RUSHES_API_TOKEN \
   RUSHES_WEB_PROXY_TARGET="http://127.0.0.1:$API_PORT" \
   npx -y pnpm@10.13.1 --dir "$ROOT/apps/web" dev --host 127.0.0.1 --port "$WEB_PORT" --strictPort &
-pids+=("$!")
+web_pid="$!"
 
 echo
 echo "════════════════════════════════════════════════════"
@@ -225,16 +259,25 @@ echo "  Rushes Go 全栈已启动："
 echo "  日常访问：http://127.0.0.1:$WEB_PORT"
 echo "  首次登录：http://127.0.0.1:$WEB_PORT/#t=$TOKEN"
 echo "  API :$API_PORT · workspace: $WORKSPACE · Ctrl+C 全停"
-echo "  STT :本地 Whisper http://127.0.0.1:$LOCAL_STT_PORT（首次请求时下载并加载模型）"
-echo "  日志 :$WORKSPACE/logs/{api,worker}.log（JSON 结构化，按大小轮转，同时镜像到本终端）"
-echo "  度量 :API http://127.0.0.1:$API_PORT/debug/metrics · worker http://127.0.0.1:$WORKER_METRICS_PORT/debug/metrics"
+if [[ "$manage_local_stt" == 1 ]]; then
+  # 注意：Bash 3.2（macOS 系统默认）解析 $VAR紧贴中文全角括号时会丢字符，
+  # 把变量名误读为包含 CJK 字节并报「unbound variable」。必须用 ${VAR} 形式定界。
+  echo "  STT :本地 Whisper http://127.0.0.1:${LOCAL_STT_PORT}（首次请求时下载并加载模型）"
+elif [[ "$ASR_PROVIDER" == "dashscope" ]]; then
+  echo "  STT :DashScope 云端（已在 cmd/api/main.go 内注入 RUSHES_DASHSCOPE_API_KEY 时装配）"
+else
+  echo "  STT :使用自管服务 ${RUSHES_LOCAL_STT_URL}（dev_all 不启停本机服务）"
+fi
+echo "  日志 :${WORKSPACE}/logs/{api,worker}.log（JSON 结构化，按大小轮转，同时镜像到本终端）"
+echo "  度量 :API http://127.0.0.1:${API_PORT}/debug/metrics · worker http://127.0.0.1:${WORKER_METRICS_PORT}/debug/metrics"
 echo "════════════════════════════════════════════════════"
 
 while true; do
-  for pid in "${pids[@]}"; do
+  for pid in "$stt_pid" "$api_pid" "$worker_pid" "$web_pid"; do
+    [[ -z "$pid" ]] && continue
     if ! kill -0 "$pid" 2>/dev/null; then
       status=0
-      wait "$pid" || status=$?
+      wait "$pid" 2>/dev/null || status=$?
       exit "$status"
     fi
   done
