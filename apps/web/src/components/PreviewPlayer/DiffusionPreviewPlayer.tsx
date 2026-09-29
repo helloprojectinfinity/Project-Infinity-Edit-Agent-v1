@@ -41,6 +41,7 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
   const pendingSeekFrameRef = useRef<number | null>(null);
   const seekInFlightRef = useRef(false);
   const [phase, setPhase] = useState<Phase>("loading");
+  const [phaseError, setPhaseError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [currentSec, setCurrentSec] = useState(0);
   const [playbackNotice, setPlaybackNotice] = useState<string | null>(null);
@@ -51,14 +52,14 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
 
   useEffect(() => {
     // preview_id 只会在服务端确认“与当前 timeline version 完全一致”时返回。
-    // 这时优先使用单文件渲染预览：浏览器只维护一个原生解码器，避免复杂
-    // 时间线为每个切片各建 WebCodecs decoder 导致初始化和播放卡死。
     if (fallbackSrc) {
       setPhase("ready");
+      setPhaseError(null);
       return;
     }
     if (!supportsLocalPreview()) {
       setPhase("error");
+      setPhaseError("当前浏览器缺少 AudioContext 或 VideoDecoder。");
       return;
     }
     let cancelled = false;
@@ -97,10 +98,14 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
         if (!cancelled) {
           setCurrentSec(engine.composition.currentTime);
           setPhase("ready");
+          setPhaseError(null);
         }
       } catch (error) {
         console.warn("Diffusion Studio 代理预览初始化失败", error);
         if (!cancelled) {
+          const detail =
+            error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+          setPhaseError(detail);
           setPhase("error");
         }
         await engineRef.current?.dispose();
@@ -347,7 +352,14 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
         ) : null}
         {phase === "error" ? (
           <div className="absolute inset-0 grid place-items-center bg-black/70 px-6 text-center text-xs text-white/75" role="alert">
-            目前瀏覽器無法啟動編輯代理預覽；最終匯出仍會讀取原素材。
+            <div className="max-w-md space-y-2">
+              <div>目前瀏覽器無法啟動編輯代理預覽；最終匯出仍會讀取原素材。</div>
+              {phaseError ? (
+                <div className="rounded-sm bg-black/60 px-2 py-1 font-mono text-[11px] text-white/85">
+                  {phaseError}
+                </div>
+              ) : null}
+            </div>
           </div>
         ) : null}
         {playbackNotice ? (
