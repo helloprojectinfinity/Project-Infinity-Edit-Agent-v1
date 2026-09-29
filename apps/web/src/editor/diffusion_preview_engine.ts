@@ -398,7 +398,14 @@ export class DiffusionPreviewEngine {
       }
     }
     clip.id = id;
-    clip.name = stringValue(clipJson.asset_id) || id;
+    // TextClip ships a name getter only; assigning to it raises
+    // "Cannot set property name of #<el> which has only a getter" and aborts the
+    // whole preview build. The asset_id is already preserved in clip.data below
+    // for debugging and on TextClip.id for the runtime signature, so skip the
+    // assignment when the subclass exposes a read-only name.
+    if (Object.getOwnPropertyDescriptor(Object.getPrototypeOf(clip), "name")?.writable) {
+      clip.name = stringValue(clipJson.asset_id) || id;
+    }
     clip.data = {
       rushesTrackId: track.track_id,
       rushesAssetId: stringValue(clipJson.asset_id) || null,

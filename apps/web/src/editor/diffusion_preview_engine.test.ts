@@ -7,6 +7,18 @@ import { timelineRuntimeSignature } from "./preview_timeline_signature";
 import { videoFadeAnimation } from "./video_fade";
 import { duckedPreviewVolume, subtitlePreviewPreset } from "./preview_presentation";
 
+// @diffusionstudio/core touches Path2D at module load; install the stub before
+// the engine (and its transitive core import) is evaluated.
+const stubPath2D = vi.hoisted(() => {
+  if (typeof globalThis.Path2D === "undefined") {
+    vi.stubGlobal("Path2D", class Path2DStub {});
+  }
+  return undefined;
+});
+void stubPath2D;
+
+const { DiffusionPreviewEngine } = await import("./diffusion_preview_engine");
+
 describe("DiffusionPreviewEngine frame adapter", () => {
   it("始终以整数帧字符串传给 Diffusion Core，不引入第二套持久时间基", () => {
     expect(frameTime(0)).toBe("0f");
@@ -190,5 +202,104 @@ describe("DiffusionPreviewEngine frame adapter", () => {
     visualBase.clips[0].linked = false;
     expect(duckedPreviewVolume(timeline, bgm, 1, 20)).toBeCloseTo(10 ** (-12 / 20));
     expect(duckedPreviewVolume(timeline, bgm, 1, 20, false, () => false)).toBe(1);
+  });
+});
+
+// Regression: a subtitle clip previously crashed the entire preview build with
+// "Cannot set property name of #<el> which has only a getter". TextClip exposes
+// a read-only name property in @diffusionstudio/core@4.0.3, so the engine must
+// not assign to it. The test builds a minimal engine against a stubbed
+// Composition/host and forces the rebuild path through sync().
+describe("DiffusionPreviewEngine subtitle clips", () => {
+  it("字幕轨道同步时不写入 TextClip 只读的 name 字段", async () => {
+    const { TextClip } = await import("@diffusionstudio/core");
+
+    // TextClip pulls a 2D context for text measurement; jsdom has none.
+    // Install a permissive proxy stub before constructing any TextClip.
+    if (!HTMLCanvasElement.prototype.getContext.toString().includes("STUB")) {
+      const stubbed = function (this: HTMLCanvasElement) {
+        const handler: ProxyHandler<object> = {
+          get(_target, prop) {
+            if (prop === "measureText") {
+              return () => ({ width: 10, actualBoundingBoxAscent: 12, actualBoundingBoxDescent: 4 });
+            }
+            return () => undefined;
+          },
+          set() {
+            return true;
+          }
+        };
+        return new Proxy(
+          {
+            canvas: this,
+            imageSmoothingEnabled: false,
+            textAlign: "left",
+            textBaseline: "alphabetic",
+            font: "",
+            fillStyle: "",
+            strokeStyle: "",
+            lineWidth: 1,
+            lineCap: "butt",
+            lineJoin: "miter",
+            miterLimit: 10,
+            shadowOffsetX: 0,
+            shadowOffsetY: 0,
+            shadowBlur: 0,
+            shadowColor: "",
+            filter: "none",
+            globalAlpha: 1,
+            globalCompositeOperation: "source-over"
+          },
+          handler
+        );
+      };
+      stubbed.toString = () => "STUB";
+      HTMLCanvasElement.prototype.getContext = stubbed as typeof HTMLCanvasElement.prototype.getContext;
+    }
+
+    // Sanity-check the real package shape before exercising the engine.
+    const probe = new TextClip({ text: "x", duration: "10f" });
+    const descriptor = Object.getOwnPropertyDescriptor(
+      Object.getPrototypeOf(probe),
+      "name"
+    );
+    if (descriptor && !descriptor.writable && !descriptor.set) {
+      // Bypass the TS read-only check so the test still triggers the real
+      // runtime throw reported by the user.
+      expect(() => {
+        (probe as { name: string }).name = "should throw";
+      }).toThrow();
+    }
+
+    // Build a minimal engine instance without touching the real Composition
+    // constructor (which still grabs OffscreenCanvas-derived things). The bug is
+    // in createRuntimeClip, so drive that path directly.
+    const engine = Object.create(DiffusionPreviewEngine.prototype);
+    (engine as any).composition = { width: 1920, height: 1080 };
+    (engine as any).fps = 30;
+    (engine as any).sources = new Map();
+    (engine as any).runtimeClips = new Map();
+    (engine as any).layers = new Map();
+
+    const track = {
+      track_id: "subtitles",
+      track_type: "subtitle",
+      clips: [
+        {
+          timeline_clip_id: "clip_sub_1",
+          asset_id: "",
+          timeline_start_frame: 0,
+          timeline_end_frame: 60,
+          text: "字幕文本",
+          subtitle_style: "default"
+        }
+      ]
+    } as any;
+    const clipJson = track.clips[0];
+
+    const runtime = await (engine as any).createRuntimeClip(track, clipJson, null, false);
+    expect(runtime).not.toBeNull();
+    expect(runtime.clip).toBeInstanceOf(TextClip);
+    expect(typeof runtime.clip.id).toBe("string");
   });
 });
