@@ -136,6 +136,125 @@ async def test_transcribe_returns_500_when_word_timestamp_invalid(app_factory):
     assert "时间无效" in response.json()["detail"]
 
 
+# Regression: a single zero-duration word (start == end at the precision
+# the model emits) used to abort the whole chunk and surface as a 500. The
+# contract now demands the full text come back with the affected segment
+# marked segment_only so the caller can keep going; the bad timestamp must
+# never be passed off as a precise word boundary.
+async def test_transcribe_downgrades_segment_when_word_zero_duration(app_factory):
+    app = app_factory(_build_fake_mlx_whisper({
+        "text": "日本語の「を」を含む文。",
+        "language": "ja",
+        "segments": [
+            {
+                "text": "日本語の「を」を含む文。",
+                "start": 0.0, "end": 2.0,
+                "words": [
+                    {"word": "日", "start": 0.10, "end": 0.30, "punctuation": ""},
+                    {"word": "本", "start": 0.30, "end": 0.50, "punctuation": ""},
+                    {"word": "語", "start": 0.50, "end": 0.70, "punctuation": ""},
+                    # を: zero-duration word — start == end in seconds.
+                    {"word": "を", "start": 13.44, "end": 13.44, "punctuation": ""},
+                    {"word": "含", "start": 0.80, "end": 1.00, "punctuation": ""},
+                    {"word": "む", "start": 1.00, "end": 1.20, "punctuation": ""},
+                    {"word": "文", "start": 1.20, "end": 1.50, "punctuation": "。"},
+                ],
+            },
+        ],
+    }))
+    async with _client(app) as client:
+        response = await _post_audio(client, b"\x00" * 100, language="ja")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "succeeded"
+    # Full text must be preserved — nothing silently dropped.
+    assert body["text"] == "日本語の「を」を含む文。"
+    assert len(body["segments"]) == 1
+    seg = body["segments"][0]
+    assert seg["begin_ms"] == 0
+    assert seg["end_ms"] == 2000
+    # The affected segment is marked as segment-level only.
+    assert seg["alignment"] == "segment_only"
+    # No usable word boundaries for this segment.
+    assert seg["words"] == []
+    # Original tokens remain available for downstream consumers / debugging.
+    raw_texts = [w["text"] for w in seg["raw_words"]]
+    assert raw_texts == ["日", "本", "語", "を", "含", "む", "文"]
+    issues = {issue["reason"] for issue in seg["alignment_issues"]}
+    assert "zero_duration" in issues
+    zero_issue = next(i for i in seg["alignment_issues"] if i["reason"] == "zero_duration")
+    assert zero_issue["word_index"] == 3
+    assert zero_issue["text"] == "を"
+
+
+# Distinguish raw zero (model emitted start==end in seconds) from rounded-to-
+# zero (model emitted distinct values that collapse to the same millisecond).
+# The fix must track both, otherwise debugging is guesswork and an alignment
+# fix that just shifts precision is invisible.
+async def test_transcribe_records_rounded_to_zero_originally_distinct(app_factory):
+    app = app_factory(_build_fake_mlx_whisper({
+        "text": "テスト",
+        "language": "ja",
+        "segments": [
+            {
+                "text": "テスト",
+                "start": 0.0, "end": 1.0,
+                "words": [
+                    # 0.0004s collapses to 0ms after rounding, but the model did
+                    # not mean it to be zero duration.
+                    {"word": "テ", "start": 0.0, "end": 0.0004, "punctuation": ""},
+                ],
+            },
+        ],
+    }))
+    async with _client(app) as client:
+        response = await _post_audio(client, b"\x00" * 100, language="ja")
+    assert response.status_code == 200
+    seg = response.json()["segments"][0]
+    assert seg["alignment"] == "segment_only"
+    issues = seg["alignment_issues"]
+    zero_issue = next(i for i in issues if i["reason"] == "zero_duration")
+    assert zero_issue["text"] == "テ"
+    assert zero_issue["raw_end_sec"] == 0.0004
+
+
+# A bad word in one segment must not affect siblings: the rest of the
+# transcription keeps its word-level alignment and precise boundaries.
+async def test_transcribe_isolates_downgrade_to_one_segment(app_factory):
+    app = app_factory(_build_fake_mlx_whisper({
+        "text": "一句正常。を含む。",
+        "language": "ja",
+        "segments": [
+            {
+                "text": "一句正常。",
+                "start": 0.0, "end": 1.0,
+                "words": [
+                    {"word": "一", "start": 0.10, "end": 0.30, "punctuation": ""},
+                    {"word": "句", "start": 0.30, "end": 0.50, "punctuation": ""},
+                    {"word": "正常", "start": 0.50, "end": 0.90, "punctuation": "。"},
+                ],
+            },
+            {
+                "text": "を含む。",
+                "start": 1.0, "end": 2.0,
+                "words": [
+                    {"word": "を", "start": 1.10, "end": 1.10, "punctuation": ""},
+                    {"word": "含", "start": 1.20, "end": 1.50, "punctuation": ""},
+                    {"word": "む", "start": 1.50, "end": 1.80, "punctuation": "。"},
+                ],
+            },
+        ],
+    }))
+    async with _client(app) as client:
+        response = await _post_audio(client, b"\x00" * 100, language="ja")
+    assert response.status_code == 200
+    segs = response.json()["segments"]
+    assert segs[0]["alignment"] == "word"
+    assert segs[0]["words"], "healthy segment must keep word-level alignment"
+    assert segs[1]["alignment"] == "segment_only"
+    assert segs[1]["words"] == []
+
+
 async def test_transcribe_returns_500_when_word_field_missing(app_factory):
     app = app_factory(_build_fake_mlx_whisper({
         "text": "hi",

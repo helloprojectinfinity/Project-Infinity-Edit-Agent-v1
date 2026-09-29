@@ -34,7 +34,13 @@ type SpeechUtterance struct {
 	Text       string
 	Language   string
 	Emotion    string
-	Words      []SpeechWord
+	// Alignment records whether the utterance's Word boundaries come from
+	// recogniser timestamps or were dropped because at least one token in
+	// the original segment was unusable (zero-duration timestamps, etc.).
+	// Empty defaults to "word" on encode for backwards compatibility with
+	// transcripts written before this field existed.
+	Alignment string
+	Words     []SpeechWord
 }
 
 type SpeechWord struct {
@@ -104,13 +110,31 @@ func AlignRecognizedClauses(
 			))
 			end = max(cursor+1, min(end, endFrame-(len(clauses)-index-1)))
 		}
+		// Synthetic frame-alignment has no recogniser word timestamps; mark
+		// it segment_only so consumers do not treat clause boundaries as
+		// precise word boundaries either.
 		result = append(result, SpeechUtterance{
 			ID:         StableSpeechID("utt", assetID, cursor, end, clause),
-			StartFrame: cursor, EndFrame: end, Text: clause, Language: language, Emotion: emotion,
+			StartFrame: cursor, EndFrame: end, Text: clause,
+			Language: language, Emotion: emotion,
+			Alignment: contracts.SpeechAlignmentSegmentOnly,
 		})
 		cursor = end
 	}
 	return result
+}
+
+// chunkHasSegmentOnlyDowngrade reports whether the recogniser signalled
+// segment-only alignment for at least one segment in the chunk. The chunk-
+// level provider ID needs to remember that, otherwise a later cache hit
+// would be indistinguishable from one where every word had a precise frame.
+func chunkHasSegmentOnlyDowngrade(recognized contracts.SpeechRecognitionResult) bool {
+	for _, segment := range recognized.Segments {
+		if segment.Alignment == contracts.SpeechAlignmentSegmentOnly {
+			return true
+		}
+	}
+	return false
 }
 
 func AlignTimestampedRecognition(
@@ -134,6 +158,23 @@ func AlignTimestampedRecognition(
 	}
 	result := []SpeechUtterance{}
 	for _, segment := range recognized.Segments {
+		if segment.Alignment == contracts.SpeechAlignmentSegmentOnly {
+			// The recogniser itself signalled that the segment's word-level
+			// alignment is unreliable. Keep the full text and the sentence's
+			// outer frame (already validated above), but refuse to manufacture
+			// precise word boundaries we do not have.
+			start := timestampToSourceFrame(segment.BeginMilliseconds, chunkStartFrame, chunkEndFrame)
+			end := timestampToSourceFrame(segment.EndMilliseconds, chunkStartFrame, chunkEndFrame)
+			if end > start {
+				result = append(result, SpeechUtterance{
+					ID:         StableSpeechID("utt", assetID, start, end, segment.Text),
+					StartFrame: start, EndFrame: end, Text: segment.Text,
+					Language: recognized.Language, Emotion: recognized.Emotion,
+					Alignment: contracts.SpeechAlignmentSegmentOnly,
+				})
+			}
+			continue
+		}
 		fromWords := timestampedWordsToUtterances(
 			assetID, segment.Words, recognized.Language, recognized.Emotion,
 			chunkStartFrame, chunkEndFrame,
@@ -174,7 +215,8 @@ func timestampedWordsToUtterances(
 					ID:         StableSpeechID("utt", assetID, start, end, value),
 					StartFrame: start, EndFrame: end, Text: value,
 					Language: language, Emotion: emotion,
-					Words: append([]SpeechWord(nil), utteranceWords...),
+					Alignment: contracts.SpeechAlignmentWord,
+					Words:     append([]SpeechWord(nil), utteranceWords...),
 				})
 			}
 		}
@@ -245,6 +287,15 @@ func EncodeSpeechUtterances(values []SpeechUtterance) []map[string]any {
 			"source_end_frame": value.EndFrame, "text": value.Text,
 			"words": encodeSpeechWords(value.Words),
 		}
+		if value.Alignment != "" {
+			item["alignment"] = value.Alignment
+		} else if len(value.Words) == 0 && value.Text != "" {
+			// Legacy transcripts and segments that lost their word-level
+			// alignment but kept the sentence's text should also read back
+			// as segment_only on round-trip, otherwise downstream code would
+			// assume precise boundaries the data no longer has.
+			item["alignment"] = contracts.SpeechAlignmentSegmentOnly
+		}
 		if value.Language != "" {
 			item["language"] = value.Language
 		}
@@ -302,6 +353,7 @@ func DecodeSpeechUtterances(values []map[string]any) ([]SpeechUtterance, error) 
 			ID: InterfaceString(value["utterance_id"]), StartFrame: int(start), EndFrame: int(end),
 			Text: InterfaceString(value["text"]), Language: InterfaceString(value["language"]),
 			Emotion: InterfaceString(value["emotion"]),
+			Alignment: InterfaceString(value["alignment"]),
 		}
 		if item.ID == "" || item.Text == "" || !startOK || !endOK || item.EndFrame <= item.StartFrame {
 			return nil, errors.New("持久化 transcript utterance 无效")
@@ -1704,7 +1756,8 @@ func (exec *Executor) toolSearchSpeech(
 		item := rushestools.SpeechUtteranceEvidence{
 			UtteranceID: utterance.ID, SourceStartFrame: sourceStart,
 			SourceEndFrame: sourceEnd, Text: utterance.Text,
-			Language: utterance.Language, Emotion: utterance.Emotion, Clamped: clamped,
+			Language: utterance.Language, Emotion: utterance.Emotion,
+			Alignment: utterance.Alignment, Clamped: clamped,
 		}
 		if timelineClip != nil {
 			if start, end, ok := MapSourceRangeToTimelineClip(*timelineClip, utterance.StartFrame, utterance.EndFrame); ok {
@@ -1987,11 +2040,18 @@ func (exec *Executor) loadOrBuildSpeechTranscript(
 			}
 			alignmentID := "provider-timestamps"
 			chunkUtterances := AlignTimestampedRecognition(asset.ID, recognized, chunk[0], chunk[1])
+			downgraded := chunkHasSegmentOnlyDowngrade(recognized)
 			if len(chunkUtterances) == 0 {
 				alignmentID = "local-frame-alignment"
 				chunkUtterances = AlignRecognizedClauses(
 					asset.ID, recognized.Text, recognized.Language, recognized.Emotion, chunk[0], chunk[1],
 				)
+			} else if downgraded {
+				// Some segments in this chunk carry text the recogniser could
+				// not align word-by-word. Stamp the suffix so a later re-run
+				// with a better model doesn't try to claim precise word
+				// alignment for these rows.
+				alignmentID = "segment-only-mixed"
 			}
 			currentProviderID := recognized.ProviderID + "+" + alignmentID
 			if providerID == "" {

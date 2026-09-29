@@ -13,6 +13,7 @@ import (
 	"github.com/nanzhi84/Rushes/go/internal/contracts"
 	"github.com/nanzhi84/Rushes/go/internal/media"
 	"github.com/nanzhi84/Rushes/go/internal/storage"
+	"github.com/nanzhi84/Rushes/go/internal/timeline"
 	rushestools "github.com/nanzhi84/Rushes/go/internal/tools"
 )
 
@@ -297,6 +298,110 @@ func TestSpeechEvidenceHelpersKeepStableRangesAndRejectInvalidRows(t *testing.T)
 		}},
 	}, 0, 90); len(got) != 0 {
 		t.Fatalf("不完整 sentence 时间戳必须回退全文对齐: %#v", got)
+	}
+}
+
+// Regression: a segment flagged segment_only by the recogniser used to be
+// discarded, then its text was silently lost when the synthetic alignment
+// branch had nothing to fill in. It must keep the full sentence and stamp
+// segment_only so downstream code does not invent precise word boundaries
+// from the empty word list.
+func TestAlignTimestampedRecognitionKeepsSegmentOnlyText(t *testing.T) {
+	t.Parallel()
+	got := AlignTimestampedRecognition("asset", contracts.SpeechRecognitionResult{
+		Text: "日本語の「を」を含む文。", Language: "ja",
+		Segments: []contracts.SpeechRecognitionSegment{{
+			Text: "日本語の「を」を含む文。",
+			BeginMilliseconds: 12000, EndMilliseconds: 15000,
+			Alignment:      contracts.SpeechAlignmentSegmentOnly,
+			AlignmentIssues: []contracts.SpeechAlignmentIssue{{
+				WordIndex: 3, Text: "を", Reason: contracts.SpeechAlignmentIssueZeroDur,
+				BeginMS: 13440, EndMS: 13440,
+			}},
+		}},
+	}, 0, timeline.DefaultFPS*45)
+	if len(got) != 1 {
+		t.Fatalf("segment-only segment must produce exactly one utterance, got %#v", got)
+	}
+	if got[0].Text != "日本語の「を」を含む文。" {
+		t.Errorf("text lost during segment-only alignment: %#v", got[0])
+	}
+	if got[0].Alignment != contracts.SpeechAlignmentSegmentOnly {
+		t.Errorf("alignment must round-trip as segment_only, got %q", got[0].Alignment)
+	}
+	if len(got[0].Words) != 0 {
+		t.Errorf("no word boundaries may be invented for segment_only, got %#v", got[0].Words)
+	}
+	if got[0].StartFrame <= 0 || got[0].EndFrame <= got[0].StartFrame {
+		t.Errorf("sentence frame must come from the recogniser's segment timestamps: %#v", got[0])
+	}
+}
+
+// A healthy segment sitting next to a segment-only one must keep its word-
+// level precision; the downgrade must not poison siblings.
+func TestAlignTimestampedRecognitionMixesPreciseAndSegmentOnly(t *testing.T) {
+	t.Parallel()
+	got := AlignTimestampedRecognition("asset", contracts.SpeechRecognitionResult{
+		Text: "一句正常。を含む。", Language: "ja",
+		Segments: []contracts.SpeechRecognitionSegment{
+			{
+				Text: "一句正常。", BeginMilliseconds: 0, EndMilliseconds: 1000,
+				Alignment: contracts.SpeechAlignmentWord,
+				Words: []contracts.SpeechRecognitionWord{
+					{Text: "一", BeginMilliseconds: 100, EndMilliseconds: 300, Punctuation: ""},
+					{Text: "句", BeginMilliseconds: 300, EndMilliseconds: 500, Punctuation: ""},
+					{Text: "正常", BeginMilliseconds: 500, EndMilliseconds: 900, Punctuation: "。"},
+				},
+			},
+			{
+				Text: "を含む。", BeginMilliseconds: 1000, EndMilliseconds: 2000,
+				Alignment: contracts.SpeechAlignmentSegmentOnly,
+				AlignmentIssues: []contracts.SpeechAlignmentIssue{{
+					WordIndex: 0, Text: "を", Reason: contracts.SpeechAlignmentIssueZeroDur,
+					BeginMS: 1100, EndMS: 1100,
+				}},
+			},
+		},
+	}, 0, timeline.DefaultFPS*45)
+	if len(got) != 2 {
+		t.Fatalf("two segments must yield two utterances, got %#v", got)
+	}
+	if got[0].Alignment != contracts.SpeechAlignmentWord || len(got[0].Words) == 0 {
+		t.Errorf("healthy segment lost its word-level alignment: %#v", got[0])
+	}
+	if got[1].Alignment != contracts.SpeechAlignmentSegmentOnly || len(got[1].Words) != 0 ||
+		got[1].Text != "を含む。" {
+		t.Errorf("downgraded segment did not retain text / alignment: %#v", got[1])
+	}
+}
+
+// Persistence must round-trip the alignment label so a cache hit and a fresh
+// transcribe both surface the same precision verdict to search consumers.
+func TestSpeechUtteranceAlignmentRoundTrip(t *testing.T) {
+	t.Parallel()
+	original := []SpeechUtterance{{
+		ID: "utt_a", StartFrame: 30, EndFrame: 90, Text: "包含を的句子。",
+		Language: "ja", Alignment: contracts.SpeechAlignmentSegmentOnly,
+	}, {
+		ID: "utt_b", StartFrame: 100, EndFrame: 200, Text: "正常",
+		Language: "zh", Alignment: contracts.SpeechAlignmentWord,
+		Words: []SpeechWord{{
+			ID: "w1", StartFrame: 100, EndFrame: 200, Text: "正常", Punctuation: "",
+		}},
+	}}
+	encoded := EncodeSpeechUtterances(original)
+	decoded, err := DecodeSpeechUtterances(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(decoded) != 2 {
+		t.Fatalf("decoded=%#v", decoded)
+	}
+	if decoded[0].Alignment != contracts.SpeechAlignmentSegmentOnly {
+		t.Errorf("segment_only did not survive encode/decode: %#v", decoded[0])
+	}
+	if decoded[1].Alignment != contracts.SpeechAlignmentWord {
+		t.Errorf("word did not survive encode/decode: %#v", decoded[1])
 	}
 }
 

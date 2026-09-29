@@ -23,11 +23,48 @@ type SpeechRecognitionWord struct {
 	Punctuation       string
 }
 
+// RawSpeechWord mirrors a recogniser-emitted token without trusting its
+// timestamp. When a segment is downgraded to segment-only alignment the
+// recogniser's text survives here even though the precise word boundaries
+// have been discarded, so downstream callers and humans can still see what
+// was actually emitted.
+type RawSpeechWord struct {
+	Text        string
+	Punctuation string
+	RawStartSec *float64
+	RawEndSec   *float64
+}
+
+// SpeechAlignmentIssue describes one unusable word boundary inside an
+// otherwise recognised segment. The reason is one of the SpeechAlignment*
+// reason constants.
+type SpeechAlignmentIssue struct {
+	WordIndex   int
+	Text        string
+	Reason      string
+	BeginMS     int
+	EndMS       int
+	RawStartSec *float64
+	RawEndSec   *float64
+}
+
+// Speech-alignment labels. A segment whose words[] cannot be trusted as
+// precise boundaries must carry Alignment="segment_only"; the text is still
+// usable for retrieval and review, only the frame-level precision is dropped.
+const (
+	SpeechAlignmentWord         = "word"
+	SpeechAlignmentSegmentOnly  = "segment_only"
+	SpeechAlignmentIssueZeroDur = "zero_duration"
+)
+
 type SpeechRecognitionSegment struct {
 	Text              string
 	BeginMilliseconds int
 	EndMilliseconds   int
+	Alignment         string
 	Words             []SpeechRecognitionWord
+	RawWords          []RawSpeechWord
+	AlignmentIssues   []SpeechAlignmentIssue
 }
 
 type SpeechRecognitionResult struct {

@@ -419,3 +419,68 @@ func TestLocalSTTRequiresBaseURL(t *testing.T) {
 		t.Fatal("expected error for empty base URL")
 	}
 }
+
+// Regression: the service may now flag a segment as segment_only when one of
+// its words has unusable boundaries. The provider must surface the label and
+// the alignment issues so the caller can keep the full text and drop the
+// word-level guarantee.
+func TestLocalSTTSurfacesSegmentOnlyAndIssues(t *testing.T) {
+	t.Parallel()
+	rawStart := 13.44
+	rawEnd := 13.44
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(localSTTResponse{
+			Text:     "日本語の「を」を含む文。",
+			Language: "ja",
+			Status:   localSTTStatusSucceeded,
+			Segments: []localSTTSegment{{
+				Text:              "日本語の「を」を含む文。",
+				BeginMilliseconds: 12000,
+				EndMilliseconds:   15000,
+				Alignment:         contracts.SpeechAlignmentSegmentOnly,
+				Words:             []localSTTWord{},
+				RawWords: []localSTTRawWord{{
+					Text: "を", RawStartSec: &rawStart, RawEndSec: &rawEnd,
+				}},
+				AlignmentIssues: []localSTTAlignmentIssue{{
+					WordIndex: 3, Text: "を",
+					Reason: contracts.SpeechAlignmentIssueZeroDur,
+					BeginMS: 13440, EndMS: 13440,
+					RawStartSec: &rawStart, RawEndSec: &rawEnd,
+				}},
+			}},
+		})
+	}))
+	defer server.Close()
+	recognizer, err := NewLocalSTT(LocalSTTConfig{
+		BaseURL: server.URL, Timeout: 30 * time.Second,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	audioPath := filepath.Join(t.TempDir(), "clip.wav")
+	if err := os.WriteFile(audioPath, []byte("FAKE"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	result, err := recognizer.Recognize(t.Context(), contracts.SpeechRecognitionRequest{
+		AudioPath: audioPath, Language: "ja",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Segments) != 1 || result.Segments[0].Alignment != contracts.SpeechAlignmentSegmentOnly {
+		t.Fatalf("alignment not surfaced: %#v", result.Segments)
+	}
+	if len(result.Segments[0].Words) != 0 {
+		t.Errorf("segment_only must not carry fabricated word boundaries, got %#v",
+			result.Segments[0].Words)
+	}
+	if len(result.Segments[0].RawWords) != 1 || result.Segments[0].RawWords[0].Text != "を" {
+		t.Errorf("raw tokens were dropped: %#v", result.Segments[0].RawWords)
+	}
+	if len(result.Segments[0].AlignmentIssues) != 1 ||
+		result.Segments[0].AlignmentIssues[0].Reason != contracts.SpeechAlignmentIssueZeroDur {
+		t.Errorf("alignment issue missing: %#v", result.Segments[0].AlignmentIssues)
+	}
+}

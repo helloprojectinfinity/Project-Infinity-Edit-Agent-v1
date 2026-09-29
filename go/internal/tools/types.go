@@ -429,6 +429,11 @@ type SpeechUtteranceEvidence struct {
 	Text               string               `json:"text"`
 	Language           string               `json:"language,omitempty"`
 	Emotion            string               `json:"emotion,omitempty"`
+	// Alignment carries the recogniser's verdict on the utterance's word-level
+	// precision: "word" means every word boundary comes from the recogniser
+	// timestamps; "segment_only" means at least one token was unusable so the
+	// caller must not assume precise word boundaries.
+	Alignment          string               `json:"alignment,omitempty"`
 	Clamped            bool                 `json:"clamped,omitempty"`
 	Words              []SpeechWordEvidence `json:"words,omitempty"`
 }

@@ -178,6 +178,35 @@ func (recognizer *LocalSTT) Recognize(
 				Punctuation:       word.Punctuation,
 			})
 		}
+		converted.Alignment = strings.TrimSpace(segment.Alignment)
+		if converted.Alignment == "" {
+			converted.Alignment = contracts.SpeechAlignmentWord
+		}
+		if converted.Alignment == contracts.SpeechAlignmentSegmentOnly {
+			// A segment-only segment must never ship its words[] as authoritative
+			// boundaries; the recogniser already flagged at least one token as
+			// unreliable.
+			converted.Words = nil
+		}
+		for _, raw := range segment.RawWords {
+			converted.RawWords = append(converted.RawWords, contracts.RawSpeechWord{
+				Text:        raw.Text,
+				Punctuation: raw.Punctuation,
+				RawStartSec: raw.RawStartSec,
+				RawEndSec:   raw.RawEndSec,
+			})
+		}
+		for _, issue := range segment.AlignmentIssues {
+			converted.AlignmentIssues = append(converted.AlignmentIssues, contracts.SpeechAlignmentIssue{
+				WordIndex:   issue.WordIndex,
+				Text:        issue.Text,
+				Reason:      issue.Reason,
+				BeginMS:     issue.BeginMS,
+				EndMS:       issue.EndMS,
+				RawStartSec: issue.RawStartSec,
+				RawEndSec:   issue.RawEndSec,
+			})
+		}
 		result.Segments = append(result.Segments, converted)
 	}
 	return result, nil
@@ -238,10 +267,13 @@ type localSTTResponse struct {
 }
 
 type localSTTSegment struct {
-	Text              string       `json:"text"`
-	BeginMilliseconds int          `json:"begin_ms"`
-	EndMilliseconds   int          `json:"end_ms"`
+	Text              string         `json:"text"`
+	BeginMilliseconds int            `json:"begin_ms"`
+	EndMilliseconds   int            `json:"end_ms"`
+	Alignment         string         `json:"alignment,omitempty"`
 	Words             []localSTTWord `json:"words"`
+	RawWords          []localSTTRawWord `json:"raw_words,omitempty"`
+	AlignmentIssues   []localSTTAlignmentIssue `json:"alignment_issues,omitempty"`
 }
 
 type localSTTWord struct {
@@ -249,4 +281,21 @@ type localSTTWord struct {
 	BeginMilliseconds int    `json:"begin_ms"`
 	EndMilliseconds   int    `json:"end_ms"`
 	Punctuation       string `json:"punctuation,omitempty"`
+}
+
+type localSTTRawWord struct {
+	Text        string   `json:"text"`
+	Punctuation string   `json:"punctuation,omitempty"`
+	RawStartSec *float64 `json:"raw_start_sec,omitempty"`
+	RawEndSec   *float64 `json:"raw_end_sec,omitempty"`
+}
+
+type localSTTAlignmentIssue struct {
+	WordIndex   int      `json:"word_index"`
+	Text        string   `json:"text"`
+	Reason      string   `json:"reason"`
+	BeginMS     int      `json:"begin_ms"`
+	EndMS       int      `json:"end_ms"`
+	RawStartSec *float64 `json:"raw_start_sec,omitempty"`
+	RawEndSec   *float64 `json:"raw_end_sec,omitempty"`
 }

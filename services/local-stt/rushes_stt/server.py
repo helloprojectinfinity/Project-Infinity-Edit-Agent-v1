@@ -37,6 +37,13 @@ DEFAULT_MODEL_REPO = os.environ.get(
 DEFAULT_ALIGNER_VERSION = "v1"
 MAX_UPLOAD_BYTES = int(os.environ.get("RUSHES_LOCAL_STT_MAX_UPLOAD_BYTES", 25 * 1024 * 1024))
 
+# Per-segment alignment labels emitted on the wire so the Go side can tell
+# apart a sentence backed by real word timestamps from one where at least one
+# token has unusable boundaries. The text stays available either way; only the
+# ability to claim a precise word boundary changes.
+SEGMENT_ALIGNMENT_WORD = "word"
+SEGMENT_ALIGNMENT_SEGMENT_ONLY = "segment_only"
+
 # Decode knobs mirror the prototype harness; centralise so we can tune without
 # hunting through the engine code.
 DECODE_OPTIONS: dict[str, Any] = {
@@ -300,54 +307,138 @@ def _normalise_segment(seg: Any) -> dict[str, Any]:
     seg_text = seg.get("text")
     if not isinstance(seg_text, str):
         raise RuntimeError("segment 缺少 text 字段")
-    seg_start = _ms(seg.get("start"))
-    seg_end = _ms(seg.get("end"))
+    seg_start, _ = _seconds_to_ms(seg.get("start"))
+    seg_end, _ = _seconds_to_ms(seg.get("end"))
     if seg_end <= seg_start:
         raise RuntimeError(f"segment 时间无效: start={seg_start} end={seg_end}")
     raw_words = seg.get("words") or []
     if not isinstance(raw_words, list):
         raise RuntimeError("segment.words 不是列表")
     words: list[dict[str, Any]] = []
-    for word in raw_words:
-        words.append(_normalise_word(word))
+    raw_words_out: list[dict[str, Any]] = []
+    alignment_issues: list[dict[str, Any]] = []
+    for index, word in enumerate(raw_words):
+        normalised = _normalise_word(index, word)
+        raw_words_out.append(normalised["raw"])
+        if normalised["issue"] is not None:
+            alignment_issues.append(normalised["issue"])
+            continue
+        words.append({
+            "text": normalised["text"],
+            "begin_ms": normalised["begin_ms"],
+            "end_ms": normalised["end_ms"],
+            "punctuation": normalised["punctuation"],
+        })
+
+    # A single zero-duration token breaks the segment's word-level alignment
+    # claim: any consumer that uses precise boundaries for cut decisions
+    # would now be lying about *some* token's frame, even if the rest look
+    # fine. Drop to segment-only alignment for the whole segment, but keep
+    # raw_words so the recogniser's output is still recoverable and the
+    # reason is recorded for diagnostics.
+    alignment = (
+        SEGMENT_ALIGNMENT_SEGMENT_ONLY if alignment_issues else SEGMENT_ALIGNMENT_WORD
+    )
+    if alignment == SEGMENT_ALIGNMENT_SEGMENT_ONLY:
+        words = []
     return {
         "text": seg_text.strip(),
         "begin_ms": seg_start,
         "end_ms": seg_end,
+        "alignment": alignment,
         "words": words,
+        "raw_words": raw_words_out,
+        "alignment_issues": alignment_issues,
     }
 
 
-def _normalise_word(word: Any) -> dict[str, Any]:
+def _normalise_word(index: int, word: Any) -> dict[str, Any]:
+    """Normalise one Whisper word entry.
+
+    Returns a dict with the original token's text/punctuation always present
+    (under ``raw``) so a segment keeps the recogniser's output even when its
+    timestamps are unusable. ``issue`` is set when the boundary fails so the
+    segment can be downgraded to segment_only alignment.
+    """
     if not isinstance(word, dict):
         raise RuntimeError("word 不是字典")
     text = word.get("word")
     if not isinstance(text, str):
         raise RuntimeError("word 缺少 word 字段")
-    start = _ms(word.get("start"))
-    end = _ms(word.get("end"))
-    if end <= start:
-        raise RuntimeError(f"word 时间无效: start={start} end={end} text={text!r}")
+    raw_start_sec = word.get("start")
+    raw_end_sec = word.get("end")
+    start_ms, start_was_int = _seconds_to_ms(raw_start_sec)
+    end_ms, _ = _seconds_to_ms(raw_end_sec)
+
     punctuation = word.get("punctuation", "")
     if not isinstance(punctuation, str):
         punctuation = ""
+
+    raw: dict[str, Any] = {
+        "text": text,
+        "punctuation": punctuation,
+        "raw_start_sec": raw_start_sec,
+        "raw_end_sec": raw_end_sec,
+    }
+
+    # A negative or zero millisecond span is unusable as a word boundary,
+    # but the recogniser still recognised a token — surface it as an issue
+    # instead of throwing the whole chunk away.
+    if end_ms <= start_ms:
+        # Preserve enough information to tell raw-zero (the model itself
+        # emitted identical seconds) apart from a precision collapse (the
+        # seconds were distinct and rounded to the same millisecond).
+        issue = {
+            "word_index": index,
+            "text": text,
+            "reason": "zero_duration",
+            "begin_ms": start_ms,
+            "end_ms": end_ms,
+        }
+        if not start_was_int:
+            issue["raw_start_sec"] = raw_start_sec
+            issue["raw_end_sec"] = raw_end_sec
+        return {
+            "text": text,
+            "begin_ms": start_ms,
+            "end_ms": end_ms,
+            "punctuation": punctuation,
+            "raw": raw,
+            "issue": issue,
+        }
+
     return {
         "text": text,
-        "begin_ms": start,
-        "end_ms": end,
+        "begin_ms": start_ms,
+        "end_ms": end_ms,
         "punctuation": punctuation,
+        "raw": raw,
+        "issue": None,
     }
 
 
-def _ms(value: Any) -> int:
+def _seconds_to_ms(value: Any) -> tuple[int, bool]:
+    """Convert seconds to milliseconds.
+
+    Whisper emits seconds as either ``float`` or, in some builds, ``int``.
+    Both must come out as the same scale. Returns ``(milliseconds, was_int)``
+    where ``was_int`` is True only when the caller passed a literal integer;
+    callers use that flag to tell "the model emitted start==end in seconds"
+    apart from "two distinct floats that rounded to the same millisecond",
+    because only the latter carries diagnostic value about precision loss.
+    """
     if value is None:
         raise RuntimeError("缺少时间戳字段")
     if isinstance(value, bool):  # bool is an int subclass; reject
         raise RuntimeError(f"时间戳不是数值: {value!r}")
     if isinstance(value, int):
-        return value
+        # Plain integer seconds: millisecond = value * 1000. Do not pre-multiply
+        # or 1s would become 1ms.
+        return value * 1000, True
     if isinstance(value, float):
-        return int(round(value * 1000))
+        if value != value or value in (float("inf"), float("-inf")):
+            raise RuntimeError(f"时间戳不是有限数: {value!r}")
+        return int(round(value * 1000)), False
     raise RuntimeError(f"时间戳类型不支持: {type(value).__name__}")
 
 
