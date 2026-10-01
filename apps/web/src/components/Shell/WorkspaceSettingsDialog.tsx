@@ -336,7 +336,7 @@ function MemoryRow({
         </div>
         <p className="mt-1 text-sm leading-5 text-fg">{memory.statement}</p>
         <p className="mt-1 truncate text-[11px] text-fg-faint" title={memory.source_draft_id}>
-          来源草稿 {memory.source_draft_id} · {new Date(memory.last_confirmed_at).toLocaleString()}
+          來源草稿 {memory.source_draft_id} · {new Date(memory.last_confirmed_at).toLocaleString()}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-0.5">

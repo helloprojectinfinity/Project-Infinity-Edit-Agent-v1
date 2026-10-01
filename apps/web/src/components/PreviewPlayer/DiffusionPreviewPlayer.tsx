@@ -59,7 +59,7 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
     }
     if (!supportsLocalPreview()) {
       setPhase("error");
-      setPhaseError("当前浏览器缺少 AudioContext 或 VideoDecoder。");
+      setPhaseError("目前瀏覽器缺少 AudioContext 或 VideoDecoder。");
       return;
     }
     let cancelled = false;
@@ -101,7 +101,7 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
           setPhaseError(null);
         }
       } catch (error) {
-        console.warn("Diffusion Studio 代理预览初始化失败", error);
+        console.warn("Diffusion Studio 代理預覽初始化失敗", error);
         if (!cancelled) {
           const detail =
             error instanceof Error ? `${error.name}: ${error.message}` : String(error);
@@ -174,7 +174,7 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
           setPlaybackNotice(null);
         }
       } catch (error) {
-        console.warn("Diffusion Studio 代理预览自动恢复失败", error);
+        console.warn("Diffusion Studio 代理預覽自動恢復失敗", error);
         await stopAsRecoverable(
           reason === "clock"
             ? "瀏覽器暫停了音訊時鐘，點擊播放即可繼續"
@@ -231,7 +231,7 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
       return;
     }
     void engine.sync(timeline).catch((error) => {
-      console.warn("Diffusion Studio 代理预览同步失败", error);
+      console.warn("Diffusion Studio 代理預覽同步失敗", error);
       setPhase("error");
     });
   }, [fallbackSrc, phase, timeline]);
@@ -264,7 +264,7 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
         onFirstPlayRef.current?.();
       }
     } catch (error) {
-      console.warn("Diffusion Studio 代理预览播放失败", error);
+      console.warn("Diffusion Studio 代理預覽播放失敗", error);
       setPlaying(false);
       // AudioContext 首次启动可能被浏览器的手势策略暂时拒绝。引擎本身并未
       // 损坏，因此保留 ready 状态让用户再次点击；不能把一次授权失败升级成
@@ -286,7 +286,7 @@ export const DiffusionPreviewPlayer = memo(function DiffusionPreviewPlayer({
       }
     } catch (error) {
       pendingSeekFrameRef.current = null;
-      console.warn("Diffusion Studio 代理预览定位失败", error);
+      console.warn("Diffusion Studio 代理預覽定位失敗", error);
       if (engineRef.current === engine) {
         setPhase("error");
       }

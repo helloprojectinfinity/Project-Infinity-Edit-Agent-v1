@@ -7,7 +7,7 @@ function apply(events: TurnStreamEvent[]): TurnStreamState {
 }
 
 describe("reduceTurnStream · subagent_progress", () => {
-  it("上下文压缩失败显示非阻塞降级提示", () => {
+  it("上下文壓縮失敗顯示非阻塞降級提示", () => {
     const state = apply([
       { type: "turn_started", turn_id: "turn_1" },
       { type: "model_retry", attempt: 5, max_retries: 5 },
@@ -20,7 +20,7 @@ describe("reduceTurnStream · subagent_progress", () => {
       type: "message",
       message_id: "context_compaction_failed",
       kind: "observation",
-      text: "上下文压缩降级：本轮使用确定性摘要"
+      text: "上下文壓縮降級：本輪使用確定性摘要"
     });
   });
 

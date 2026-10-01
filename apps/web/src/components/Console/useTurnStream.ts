@@ -439,7 +439,7 @@ export function reduceTurnStream(state: TurnStreamState, event: TurnStreamEvent)
           type: "message",
           message_id: "context_compaction_failed",
           kind: "observation",
-          text: "上下文压缩降级：本轮使用确定性摘要"
+          text: "上下文壓縮降級：本輪使用確定性摘要"
         })
       };
     case "turn_ended":
@@ -482,7 +482,7 @@ export function useTurnStream(
         optionsRef.current.onTurnEnded?.(normalizeTurnEndedEvent(event));
       } else if (event.type === "turn_error") {
         optionsRef.current.onTurnError?.(
-          typeof event.message === "string" ? event.message : "本轮出错"
+          typeof event.message === "string" ? event.message : "本輪出錯"
         );
       }
     };
