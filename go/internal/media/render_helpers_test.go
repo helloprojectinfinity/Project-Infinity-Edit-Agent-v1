@@ -166,7 +166,7 @@ func TestMixAudioFilterTrimsPreservedOverhangToCompositionDuration(t *testing.T)
 	filter := mixAudioFilter([]string{"bgm", "sfx"}, "mixed", document)
 	if !strings.Contains(clipFilter, "atrim=duration=2.000000") ||
 		!strings.Contains(filter, "amix=inputs=2:duration=longest") ||
-		!strings.Contains(filter, "apad=whole_dur=1.000000,atrim=duration=1.000000[mixed]") {
+		!strings.Contains(filter, "apad=whole_dur=1.000000,atrim=duration=1.000000,asetpts=PTS-STARTPTS[mixed]") {
 		t.Fatalf("overhanging independent audio must be kept at clip stage then trimmed in final mix: clip=%s mix=%s", clipFilter, filter)
 	}
 }

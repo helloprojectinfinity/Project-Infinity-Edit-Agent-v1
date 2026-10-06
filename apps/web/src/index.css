@@ -1,21 +1,21 @@
 @import "tailwindcss";
 
-/* 暖色高密度剪辑工作台令牌。数值取自对参考编辑器公开样式资源的实测结果，
+/* 暖色高密度剪辑工作台令牌（深色版）。数值取自对参考编辑器公开样式资源的实测结果，
    组件一律引用语义令牌；`static` 保证 canvas 等运行时读取也能取得完整变量。 */
 @theme static {
-  --color-ink: oklch(88% 0.005 75); /* 轨道/应用底色 */
-  --color-panel: oklch(94% 0.005 75); /* 主面板 */
-  --color-raised: oklch(97% 0.004 75); /* 输入区/浮层 */
-  --color-hover: oklch(91% 0.006 75); /* 悬浮态 */
-  --color-active: oklch(86% 0.007 75); /* 按下/工具选中态 */
-  --color-line: oklch(84% 0.005 75); /* 描边 */
-  --color-line-strong: oklch(76% 0.006 75); /* 强描边 */
-  --color-fg: oklch(18% 0.008 75); /* 正文 */
-  --color-fg-muted: oklch(43% 0.009 75); /* 次级文字 */
-  --color-fg-faint: oklch(58% 0.008 75); /* 弱化文字 */
+  --color-ink: oklch(20% 0.006 75); /* 轨道/应用底色 */
+  --color-panel: oklch(25% 0.005 75); /* 主面板 */
+  --color-raised: oklch(30% 0.004 75); /* 输入区/浮层 */
+  --color-hover: oklch(28% 0.007 75); /* 悬浮态 */
+  --color-active: oklch(36% 0.008 75); /* 按下/工具选中态 */
+  --color-line: oklch(32% 0.005 75); /* 描边 */
+  --color-line-strong: oklch(44% 0.006 75); /* 强描边 */
+  --color-fg: oklch(94% 0.006 75); /* 正文 */
+  --color-fg-muted: oklch(72% 0.008 75); /* 次级文字 */
+  --color-fg-faint: oklch(55% 0.008 75); /* 弱化文字 */
   --color-accent: #dc7036; /* 主按钮/选中/焦点 */
-  --color-accent-strong: #c65f2a; /* 强调悬浮 */
-  --color-user-bubble: #e0deda; /* 源站 ableton-sunlit 的克制右侧气泡 */
+  --color-accent-strong: #e07b3f; /* 强调悬浮（深底略提亮保对比） */
+  --color-user-bubble: oklch(30% 0.005 75); /* 深色版右侧气泡 */
   --color-selected: color-mix(in srgb, var(--color-accent) 12%, var(--color-raised));
   --color-focus-ring: var(--color-accent);
   --color-track-video: #588fc0;
@@ -38,8 +38,8 @@
 
   /* 参考工作台的主面板无投影；只给真正离开文档流的弹层轻微层级。 */
   --shadow-raised: none;
-  --shadow-overlay: 0 10px 30px -12px rgb(31 28 24 / 0.28);
-  --shadow-pop: 0 14px 36px -14px rgb(31 28 24 / 0.32);
+  --shadow-overlay: 0 10px 30px -12px rgb(0 0 0 / 0.45);
+  --shadow-pop: 0 14px 36px -14px rgb(0 0 0 / 0.55);
 
   /* 字号：补 2xs 档，收敛散落的 text-[10px]/[11px] 任意值。 */
   --text-2xs: 0.6875rem; /* 11px */
@@ -61,7 +61,7 @@
   color: var(--color-fg);
   background: var(--color-ink);
   font-family: var(--font-sans);
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 body {

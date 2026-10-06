@@ -441,6 +441,17 @@ func splitDuckingKey(label string, enabled bool) (string, string, string) {
 	return mixLabel, keyLabel, fmt.Sprintf("[%s]asplit=2[%s][%s]", label, mixLabel, keyLabel)
 }
 
+// mixAudioFilter 把一条音轨的所有 clip 混成单一输出。
+//
+// audioFilter 用 adelay 把每个 clip 平移到它在时间线上的位置，因此 clip 链的
+// PTS 起点是它在时间线上的起始秒数（例如 87.5s），而不是 0。当输入是 -ss 越过
+// 素材起点的取样、adelay 较大、且本音轨有多个 clip 时，adelay 会产出
+// PTS=AV_NOPTS_VALUE 的帧；adelay 单独存在不会，但 amix 会把坏帧原样传给下游
+// amix，最终 AAC encoder 提交给 muxer 时被拒：
+// "Application provided invalid, non monotonically increasing dts to muxer"。
+// 该值是 INT64_MAX，因此混音后补 asetpts=PTS-STARTPTS 即可消除。
+//
+// apad/atrim 只负责补齐与截断到成片时长，不重置起点，因此两者都保留。
 func mixAudioFilter(labels []string, outputLabel string, document timeline.Document) string {
 	duration := formatSeconds(float64(document.DurationFrames) / float64(document.FPS))
 	inputs := make([]string, 0, len(labels))
@@ -448,11 +459,14 @@ func mixAudioFilter(labels []string, outputLabel string, document timeline.Docum
 		inputs = append(inputs, "["+label+"]")
 	}
 	if len(inputs) == 1 {
-		return fmt.Sprintf("%sanull,apad=whole_dur=%s,atrim=duration=%s[%s]", inputs[0], duration, duration, outputLabel)
+		return fmt.Sprintf(
+			"%sanull,apad=whole_dur=%s,atrim=duration=%s,asetpts=PTS-STARTPTS[%s]",
+			inputs[0], duration, duration, outputLabel,
+		)
 	}
 	return fmt.Sprintf(
 		"%samix=inputs=%d:duration=longest:dropout_transition=0:normalize=0,"+
-			"apad=whole_dur=%s,atrim=duration=%s[%s]",
+			"apad=whole_dur=%s,atrim=duration=%s,asetpts=PTS-STARTPTS[%s]",
 		strings.Join(inputs, ""), len(inputs), duration, duration, outputLabel,
 	)
 }
