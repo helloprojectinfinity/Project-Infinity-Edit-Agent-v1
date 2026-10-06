@@ -112,6 +112,17 @@ func run() error {
 		if err != nil {
 			return err
 		}
+	case config.ProviderNous:
+		// Nous 缺密钥或模型时由 NewNousTiers 在启动期报错，不静默降级。
+		tiers, err = providers.NewNousTiers(context.Background(), providers.NousTierConfig{
+			APIKey:      os.Getenv("RUSHES_NOUS_API_KEY"),
+			BaseURL:     os.Getenv("RUSHES_NOUS_BASE_URL"),
+			ChatModel:   os.Getenv("RUSHES_NOUS_CHAT_MODEL"),
+			VisionModel: os.Getenv("RUSHES_NOUS_VISION_MODEL"),
+		})
+		if err != nil {
+			return err
+		}
 	}
 	agentService, err := agent.NewServiceWithModelsForStartup(context.Background(), database, tiers.Chat, tiers.Vision)
 	if err != nil {
@@ -123,6 +134,7 @@ func run() error {
 	if asrErr != nil {
 		return asrErr
 	}
+	localSTTURL := ""
 	switch asrProvider {
 	case config.ProviderDashScopeASR:
 		key := strings.TrimSpace(os.Getenv("RUSHES_DASHSCOPE_API_KEY"))
@@ -157,6 +169,7 @@ func run() error {
 			return asrErr
 		}
 		agentService.SetSpeechRecognizer(recognizer)
+		localSTTURL = baseURL
 		slog.Info(
 			"本地 STT 已装载", "base_url", baseURL,
 			"model", os.Getenv(config.EnvLocalSTTModel), "aligner", os.Getenv(config.EnvLocalSTTAlignerVersion),
@@ -171,7 +184,7 @@ func run() error {
 	server, err := api.NewServer(api.Config{
 		Database: database, Token: token, Port: port,
 		FSRoots: filepath.SplitList(os.Getenv("RUSHES_FS_ROOTS")),
-		Agent:   agentService,
+		Agent:   agentService, ASRProvider: string(asrProvider), LocalSTTURL: localSTTURL,
 	})
 	if err != nil {
 		return err
@@ -244,6 +257,12 @@ func chatVisionModelLabel(provider config.ChatProvider) string {
 			os.Getenv("RUSHES_OPENROUTER_VISION_MODEL"),
 			os.Getenv("RUSHES_OPENROUTER_CHAT_MODEL"),
 			providers.DefaultOpenRouterVisionModel,
+		)
+	case config.ProviderNous:
+		return firstNonEmpty(
+			os.Getenv("RUSHES_NOUS_VISION_MODEL"),
+			os.Getenv("RUSHES_NOUS_CHAT_MODEL"),
+			providers.DefaultNousVisionModel,
 		)
 	default:
 		return providers.DefaultVisionModel

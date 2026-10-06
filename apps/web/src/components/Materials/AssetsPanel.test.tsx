@@ -216,6 +216,47 @@ describe("AssetsPanel 单击试看 / 右键摘要", () => {
   });
 });
 
+describe("AssetsPanel 本地語音模型狀態", () => {
+  it("顯示準備失敗並容許用戶重試", async () => {
+    let prepareCalls = 0;
+    const fetchMock: FetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/materials")) {
+        return jsonResponse({ draft_id: "draft_1", assets: [], invalidated_asset_ids: [] });
+      }
+      if (url.endsWith("/api/stt/status")) {
+        return jsonResponse({
+          mode: "local",
+          state: "failed",
+          model: "mlx-community/whisper-large-v3-mlx",
+          message: "本地語音模型準備失敗",
+          can_retry: true,
+          attempt: 3,
+          max_attempts: 3
+        });
+      }
+      if (url.endsWith("/api/stt/prepare") && init?.method === "POST") {
+        prepareCalls += 1;
+        return jsonResponse({
+          mode: "local",
+          state: "preparing",
+          model: "mlx-community/whisper-large-v3-mlx",
+          message: "正在下載及暖機本地語音模型",
+          can_retry: false,
+          attempt: 1,
+          max_attempts: 3
+        }, 202);
+      }
+      return jsonResponse({});
+    });
+    renderPanel([], {}, fetchMock);
+
+    expect(await screen.findByText("本地語音模型準備失敗")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "重試" }));
+    await waitFor(() => expect(prepareCalls).toBe(1));
+  });
+});
+
 describe("MaterialSummaryPanel 理解语义澄清", () => {
   it("未理解时提示基础镜头索引会由导入流程自动排队", () => {
     renderSummary(makeAsset({ understanding_status: "none" }));

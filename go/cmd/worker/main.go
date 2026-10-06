@@ -116,6 +116,19 @@ func run() error {
 			return modelErr
 		}
 		analyzer = understanding.NewAnalyzer(vision).WithVisionModelLabel(openRouterVisionModelName())
+	case config.ProviderNous:
+		// worker 只需视觉档；选择 nous 时缺密钥/模型由 NewNousChatModel 在启动期报错，
+		// 不静默降级为本地降级 analyzer。
+		vision, modelErr := providers.NewNousChatModel(context.Background(), providers.NousConfig{
+			APIKey:  os.Getenv("RUSHES_NOUS_API_KEY"),
+			BaseURL: os.Getenv("RUSHES_NOUS_BASE_URL"),
+			Model:   nousVisionModelName(),
+			Timeout: 180 * time.Second,
+		})
+		if modelErr != nil {
+			return modelErr
+		}
+		analyzer = understanding.NewAnalyzer(vision).WithVisionModelLabel(nousVisionModelName())
 	}
 	if err := worker.RegisterUnderstand(registry, database, analyzer); err != nil {
 		return err
@@ -211,5 +224,15 @@ func openRouterVisionModelName() string {
 		os.Getenv("RUSHES_OPENROUTER_VISION_MODEL"),
 		os.Getenv("RUSHES_OPENROUTER_CHAT_MODEL"),
 		providers.DefaultOpenRouterVisionModel,
+	)
+}
+
+// nousVisionModelName 解析视觉模型 ID；用户不填则回落到聊天模型或 Nous 默认模型，
+// 匹配 NewNousTiers 的语义。
+func nousVisionModelName() string {
+	return firstNonEmpty(
+		os.Getenv("RUSHES_NOUS_VISION_MODEL"),
+		os.Getenv("RUSHES_NOUS_CHAT_MODEL"),
+		providers.DefaultNousVisionModel,
 	)
 }

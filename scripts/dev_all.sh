@@ -125,6 +125,8 @@ elif [[ "$CHAT_PROVIDER" == "ark" && -z "${RUSHES_ARK_API_KEY:-}" && ( -z "${RUS
   printf '\033[33m警告：RUSHES_CHAT_PROVIDER=ark 但未配置 RUSHES_ARK_API_KEY（或 AK/SK）；API 与 worker 会在启动期报错。\033[0m\n' >&2
 elif [[ "$CHAT_PROVIDER" == "openrouter" && -z "${RUSHES_OPENROUTER_API_KEY:-}" ]]; then
   printf '\033[33m警告：RUSHES_CHAT_PROVIDER=openrouter 但未配置 RUSHES_OPENROUTER_API_KEY；API 与 worker 会在启动期报错。\033[0m\n' >&2
+elif [[ "$CHAT_PROVIDER" == "nous" && -z "${RUSHES_NOUS_API_KEY:-}" ]]; then
+  printf '\033[33m警告：RUSHES_CHAT_PROVIDER=nous 但未設定 RUSHES_NOUS_API_KEY；API 與 worker 會在啟動時報錯。\033[0m\n' >&2
 fi
 
 ASR_PROVIDER="$(printf '%s' "${RUSHES_ASR_PROVIDER:-local}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
@@ -184,20 +186,21 @@ trap cleanup EXIT INT TERM
 if [[ "$manage_local_stt" == 1 ]]; then
   LOCAL_STT_DIR="$ROOT/services/local-stt"
   LOCAL_STT_VENV="$WORKSPACE/.local-stt-venv"
+  if [[ "$(uname -s)" != "Darwin" || "$(uname -m)" != "arm64" ]]; then
+    echo "錯誤：本地 STT 目前只支援 Apple Silicon Mac；請設定 RUSHES_ASR_PROVIDER=dashscope 使用雲端語音辨識。" >&2
+    exit 1
+  fi
   if [[ ! -x "$LOCAL_STT_VENV/bin/python" ]]; then
     printf '\033[33m首次启动：正在准备本地 STT Python 环境（约数秒至数分钟）\033[0m\n'
-    if command -v uv >/dev/null 2>&1; then
-      (cd "$LOCAL_STT_DIR" && uv venv --python 3.12 "$LOCAL_STT_VENV" && uv pip install --python "$LOCAL_STT_VENV/bin/python" -e .) || {
-        echo "错误：本地 STT Python 环境准备失败。" >&2
-        exit 1
-      }
-    else
-      (cd "$LOCAL_STT_DIR" && python3 -m venv "$LOCAL_STT_VENV" && "$LOCAL_STT_VENV/bin/pip" install -e .) || {
-        echo "错误：本地 STT Python 环境准备失败；请先安装 uv 或 Python 3.12+。" >&2
-        exit 1
-      }
-    fi
   fi
+  if ! command -v uv >/dev/null 2>&1; then
+    echo "錯誤：本地 STT 需要 uv；請先執行 brew install uv。" >&2
+    exit 1
+  fi
+  (cd "$LOCAL_STT_DIR" && UV_PROJECT_ENVIRONMENT="$LOCAL_STT_VENV" uv sync --locked --no-default-groups --python 3.12) || {
+    echo "錯誤：本地 STT Python 環境準備失敗。" >&2
+    exit 1
+  }
 
   RUSHES_LOCAL_STT_URL="http://127.0.0.1:$LOCAL_STT_PORT" \
     RUSHES_LOCAL_STT_PORT="$LOCAL_STT_PORT" \
@@ -262,7 +265,7 @@ echo "  API :$API_PORT · workspace: $WORKSPACE · Ctrl+C 全停"
 if [[ "$manage_local_stt" == 1 ]]; then
   # 注意：Bash 3.2（macOS 系统默认）解析 $VAR紧贴中文全角括号时会丢字符，
   # 把变量名误读为包含 CJK 字节并报「unbound variable」。必须用 ${VAR} 形式定界。
-  echo "  STT :本地 Whisper http://127.0.0.1:${LOCAL_STT_PORT}（首次请求时下载并加载模型）"
+  echo "  STT :本地 Whisper http://127.0.0.1:${LOCAL_STT_PORT}（背景下载及暖机，不阻塞其他功能）"
 elif [[ "$ASR_PROVIDER" == "dashscope" ]]; then
   echo "  STT :DashScope 云端（已在 cmd/api/main.go 内注入 RUSHES_DASHSCOPE_API_KEY 时装配）"
 else

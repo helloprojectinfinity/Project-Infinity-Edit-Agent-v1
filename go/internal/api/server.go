@@ -12,7 +12,9 @@ import (
 	"net/http"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/nanzhi84/Rushes/go/internal/agent"
@@ -31,6 +33,8 @@ type Config struct {
 	Logger       *slog.Logger
 	Picker       Picker
 	Agent        *agent.Service
+	ASRProvider  string
+	LocalSTTURL  string
 }
 
 type Server struct {
@@ -46,6 +50,9 @@ type Server struct {
 	picker                Picker
 	pickerMu              sync.Mutex
 	agent                 *agent.Service
+	asrProvider           string
+	localSTTURL           string
+	sttClient             *http.Client
 	ownsAgent             bool
 	rewindMu              sync.Mutex
 	rewindDrain           map[string]*agent.DraftCancellationBarrier
@@ -86,7 +93,10 @@ func NewServer(config Config) (*Server, error) {
 		database: config.Database, token: config.Token, port: config.Port,
 		fsRoots: roots, sseMaxEvents: config.SSEMaxEvents,
 		logger: config.Logger, picker: config.Picker, agent: config.Agent,
-		ownsAgent: ownedAgent, rewindDrain: map[string]*agent.DraftCancellationBarrier{},
+		asrProvider: strings.ToLower(strings.TrimSpace(config.ASRProvider)),
+		localSTTURL: strings.TrimRight(strings.TrimSpace(config.LocalSTTURL), "/"),
+		sttClient:   &http.Client{Timeout: 5 * time.Second},
+		ownsAgent:   ownedAgent, rewindDrain: map[string]*agent.DraftCancellationBarrier{},
 	}, nil
 }
 

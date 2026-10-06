@@ -17,6 +17,10 @@ const (
 	// 不绑定 Qwen 专属参数、不会自动装配 DashScope ASR。需显式填写
 	// RUSHES_OPENROUTER_API_KEY，未配置时启动期拒绝以“看似可用、实际无法呼叫模型”的状态运行。
 	ProviderOpenRouter ChatProvider = "openrouter"
+	// ProviderNous 通过 Nous Research 官方 OpenAI-compatible endpoint 接入 DeepSeek 等模型。
+	// 聊天与视觉共享同一组 API key 与 BaseURL，模型 ID 独立填写。缺 key 时启动期拒绝，
+	// 不静默降级为本地降级 analyzer。
+	ProviderNous ChatProvider = "nous"
 )
 
 // EnvChatProvider 是选择聊天/视觉模型厂商的开关变量名。
@@ -33,10 +37,12 @@ func ResolveChatProvider(raw string) (ChatProvider, error) {
 		return ProviderArk, nil
 	case ProviderOpenRouter:
 		return ProviderOpenRouter, nil
+	case ProviderNous:
+		return ProviderNous, nil
 	default:
 		return "", fmt.Errorf(
-			"%s=%q 非法，合法值为 %s、%s 或 %s",
-			EnvChatProvider, raw, ProviderDashScope, ProviderArk, ProviderOpenRouter,
+			"%s=%q 無效，有效值為 %s、%s、%s 或 %s",
+			EnvChatProvider, raw, ProviderDashScope, ProviderArk, ProviderOpenRouter, ProviderNous,
 		)
 	}
 }

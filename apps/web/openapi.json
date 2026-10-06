@@ -2203,6 +2203,43 @@
         "title": "SecurityRefusalResponse",
         "type": "object"
       },
+      "SttStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "attempt": {
+            "type": "integer"
+          },
+          "can_retry": {
+            "type": "boolean"
+          },
+          "max_attempts": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "state",
+          "model",
+          "message",
+          "can_retry",
+          "attempt",
+          "max_attempts"
+        ],
+        "title": "SttStatusResponse",
+        "type": "object"
+      },
       "StorageMode": {
         "enum": [
           "copy",
@@ -5160,6 +5197,92 @@
           }
         },
         "summary": "Fs Roots"
+      }
+    },
+    "/api/stt/prepare": {
+      "post": {
+        "operationId": "stt_prepare_api_stt_prepare_post",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SttStatusResponse"
+                }
+              }
+            },
+            "description": "Preparation accepted"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityRefusalResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityRefusalResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityRefusalResponse"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          }
+        },
+        "summary": "Prepare local STT"
+      }
+    },
+    "/api/stt/status": {
+      "get": {
+        "operationId": "stt_status_api_stt_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SttStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityRefusalResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityRefusalResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          }
+        },
+        "summary": "Local STT status"
       }
     },
     "/api/jobs/{job_id}/cancel": {

@@ -26,6 +26,7 @@ export const queryKeys = {
     ["material-summary", draftId, assetId] as const,
   fsRoots: ["fs-roots"] as const,
   fsList: (path: string) => ["fs-list", path] as const,
+  sttStatus: ["stt-status"] as const,
   timeline: (draftId: string) => ["timeline", draftId] as const,
   exports: (draftId: string) => ["exports", draftId] as const,
   messages: (draftId: string) => ["messages", draftId] as const,

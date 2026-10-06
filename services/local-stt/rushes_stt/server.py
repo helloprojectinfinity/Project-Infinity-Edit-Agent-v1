@@ -2,10 +2,9 @@
 
 Endpoints:
     GET  /healthz   — liveness; never blocked on model or queue.
-    GET  /readyz    — readiness; engine_ready=True means the Python
-                     inference bindings are importable. weights_ready=True
-                     means at least one /transcribe has succeeded. The
-                     first real request still pays the weight download.
+    GET  /readyz    — readiness and background model preparation state.
+                     weights_ready=True means download, load, and warm-up
+                     completed before the first real transcription.
     POST /transcribe — multipart upload of audio bytes + a language hint.
 
 Concurrency: transcribe calls run inside a single worker thread so the
@@ -17,12 +16,14 @@ flight.
 from __future__ import annotations
 
 import asyncio
+import io
 import logging
 import os
 import tempfile
 import threading
 import time
-from concurrent.futures import Future
+import wave
+from concurrent.futures import Future, TimeoutError as FutureTimeoutError
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any, Callable
@@ -36,6 +37,8 @@ DEFAULT_MODEL_REPO = os.environ.get(
 )
 DEFAULT_ALIGNER_VERSION = "v1"
 MAX_UPLOAD_BYTES = int(os.environ.get("RUSHES_LOCAL_STT_MAX_UPLOAD_BYTES", 25 * 1024 * 1024))
+PREPARE_MAX_ATTEMPTS = 3
+PREPARE_TIMEOUT_SECONDS = 30 * 60
 
 # Per-segment alignment labels emitted on the wire so the Go side can tell
 # apart a sentence backed by real word timestamps from one where at least one
@@ -66,7 +69,11 @@ class ModelState:
     load_finished_at: float | None = None
     model_module: Any = None
     worker_lock: threading.Lock = field(default_factory=threading.Lock)
+    prepare_lock: threading.Lock = field(default_factory=threading.Lock)
     worker_busy: bool = False
+    prepare_state: str = "idle"
+    prepare_error: str | None = None
+    prepare_attempt: int = 0
 
     def snapshot(self) -> dict[str, Any]:
         return {
@@ -79,6 +86,10 @@ class ModelState:
             "load_started_at": self.load_started_at,
             "load_finished_at": self.load_finished_at,
             "worker_busy": self.worker_busy,
+            "prepare_state": self.prepare_state,
+            "prepare_error": self.prepare_error,
+            "prepare_attempt": self.prepare_attempt,
+            "prepare_max_attempts": PREPARE_MAX_ATTEMPTS,
         }
 
 
@@ -94,6 +105,7 @@ def create_app(
     model_module: Any | None = None,
 ) -> FastAPI:
     state = ModelState()
+    injected_model = model_module is not None
     state.model_module = model_module  # None means lazy import on first call.
     repo = model_repo or DEFAULT_MODEL_REPO
     job_queue: "queue.Queue[InferenceJob]" = queue.Queue()
@@ -144,6 +156,73 @@ def create_app(
                 state.worker_busy = False
                 job_queue.task_done()
 
+    def prepare_loop() -> None:
+        deadline = time.monotonic() + PREPARE_TIMEOUT_SECONDS
+        try:
+            ensure_engine()
+        except Exception as exc:  # noqa: BLE001
+            with state.prepare_lock:
+                state.prepare_state = "failed"
+                state.prepare_error = _safe_error(exc)
+            return
+
+        audio_path = write_warmup_audio()
+        try:
+            for attempt in range(1, PREPARE_MAX_ATTEMPTS + 1):
+                with state.prepare_lock:
+                    state.prepare_attempt = attempt
+                future: "Future[dict[str, Any]]" = Future()
+                job_queue.put(InferenceJob(audio_path=audio_path, language="", future=future))
+                try:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise FutureTimeoutError
+                    future.result(timeout=remaining)
+                except FutureTimeoutError:
+                    with state.prepare_lock:
+                        state.prepare_state = "failed"
+                        state.prepare_error = "本地語音模型準備超過 30 分鐘，請重試"
+                    return
+                except Exception as exc:  # noqa: BLE001
+                    if attempt < PREPARE_MAX_ATTEMPTS and _is_retryable_prepare_error(exc):
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            with state.prepare_lock:
+                                state.prepare_state = "failed"
+                                state.prepare_error = "本地語音模型準備超過 30 分鐘，請重試"
+                            return
+                        time.sleep(min(2 ** attempt, remaining))
+                        continue
+                    with state.prepare_lock:
+                        state.prepare_state = "failed"
+                        state.prepare_error = _safe_error(exc)
+                    return
+                with state.prepare_lock:
+                    state.weights_ready = True
+                    state.weights_error = None
+                    state.prepare_state = "ready"
+                    state.prepare_error = None
+                return
+        finally:
+            safe_remove(audio_path)
+
+    def start_prepare() -> bool:
+        with state.prepare_lock:
+            if state.prepare_state == "preparing":
+                return False
+            # A timed-out native inference call cannot be cancelled safely in
+            # Python. Do not queue duplicate retries behind the same MLX worker.
+            if state.worker_busy:
+                return False
+            if state.weights_ready:
+                state.prepare_state = "ready"
+                return False
+            state.prepare_state = "preparing"
+            state.prepare_error = None
+            state.prepare_attempt = 0
+        threading.Thread(target=prepare_loop, name="stt-prepare", daemon=True).start()
+        return True
+
     # The worker thread is started here so it runs whether or not the lifespan
     # is honored: tests using httpx.ASGITransport do not fire lifespan events,
     # so they would hang on /transcribe otherwise. The lifespan teardown still
@@ -152,6 +231,8 @@ def create_app(
 
     @asynccontextmanager
     async def _lifespan(app: FastAPI):
+        if os.environ.get("RUSHES_LOCAL_STT_AUTO_PREPARE", "1") != "0":
+            start_prepare()
         try:
             yield
         finally:
@@ -167,11 +248,22 @@ def create_app(
     def readyz() -> dict[str, Any]:
         return state.snapshot()
 
+    @app.post("/prepare", status_code=202)
+    def prepare() -> dict[str, Any]:
+        start_prepare()
+        return state.snapshot()
+
     @app.post("/transcribe")
     async def transcribe(
         audio: UploadFile = File(...),
         language: str = Form(""),
     ) -> dict[str, Any]:
+        if not state.weights_ready and not injected_model:
+            start_prepare()
+            raise HTTPException(
+                status_code=503,
+                detail="本地語音模型仍在準備，完成後請重試",
+            )
         try:
             ensure_engine()
         except Exception as exc:  # noqa: BLE001
@@ -234,6 +326,46 @@ def write_temp_audio(contents: bytes) -> str:
         safe_remove(path)
         raise
     return path
+
+
+def write_warmup_audio() -> str:
+    """Create one second of valid mono PCM silence for model download and warm-up."""
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as output:
+        output.setnchannels(1)
+        output.setsampwidth(2)
+        output.setframerate(16000)
+        output.writeframes(b"\x00\x00" * 16000)
+    return write_temp_audio(buffer.getvalue())
+
+
+def _safe_error(exc: BaseException) -> str:
+    if _is_retryable_prepare_error(exc):
+        return "下載模型時網絡連線失敗"
+    current: BaseException | None = exc
+    parts: list[str] = []
+    while current is not None:
+        parts.append(f"{type(current).__name__}: {current}".lower())
+        current = current.__cause__
+    message = " ".join(parts)
+    if "no space" in message or "disk full" in message:
+        return "磁碟空間不足，無法準備本地語音模型"
+    if "memory" in message or "allocate" in message:
+        return "記憶體不足，無法載入本地語音模型"
+    return "模型無法下載或載入，請查看本機 STT 日誌"
+
+
+def _is_retryable_prepare_error(exc: BaseException) -> bool:
+    current: BaseException | None = exc
+    parts: list[str] = []
+    while current is not None:
+        parts.append(f"{type(current).__name__}: {current}".lower())
+        current = current.__cause__
+    message = " ".join(parts)
+    return any(marker in message for marker in (
+        "connection", "network", "timeout", "timed out", "gaierror", "name resolution",
+        "ssl", "tls", "408", "429", "500", "502", "503", "504",
+    ))
 
 
 def safe_remove(path: str) -> None:

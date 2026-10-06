@@ -8,6 +8,7 @@ and validation contract hold for a stubbed model module.
 from __future__ import annotations
 
 import asyncio
+import socket
 import sys
 import tempfile
 import time
@@ -72,6 +73,90 @@ async def _post_audio(client: httpx.AsyncClient, contents: bytes, language: str 
 
 def _client(app):
     return httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
+
+
+async def test_prepare_downloads_and_warms_model_without_blocking_request(monkeypatch):
+    fake = _build_fake_mlx_whisper({"text": "", "language": "", "segments": []})
+    monkeypatch.setitem(sys.modules, "mlx_whisper", fake)
+    app = server.create_app(model_repo="test/model")
+
+    async with _client(app) as client:
+        response = await client.post("/prepare")
+        assert response.status_code == 202
+        assert response.json()["prepare_state"] in {"preparing", "ready"}
+
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            status = (await client.get("/readyz")).json()
+            if status["prepare_state"] == "ready":
+                break
+            await asyncio.sleep(0.01)
+
+    assert status["weights_ready"] is True
+    assert status["prepare_error"] is None
+    assert fake.transcribe_call_count == 1
+
+
+async def test_prepare_is_idempotent_after_model_is_ready(app_factory):
+    fake = _build_fake_mlx_whisper({"text": "", "language": "", "segments": []})
+    app = app_factory(fake)
+    async with _client(app) as client:
+        first = await client.post("/prepare")
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            status = (await client.get("/readyz")).json()
+            if status["prepare_state"] == "ready":
+                break
+            await asyncio.sleep(0.01)
+        second = await client.post("/prepare")
+
+    assert first.status_code == 202
+    assert second.status_code == 202
+    assert status["prepare_state"] == "ready"
+    assert fake.transcribe_call_count == 1
+
+
+async def test_prepare_retries_two_network_failures_then_succeeds(monkeypatch):
+    class _FlakyModel:
+        calls = 0
+
+        @classmethod
+        def transcribe(cls, path, **_kwargs):  # noqa: ANN001
+            cls.calls += 1
+            if cls.calls < 3:
+                raise TimeoutError("model download timed out")
+            return {"text": "", "language": "", "segments": []}
+
+    monkeypatch.setattr(server.time, "sleep", lambda _seconds: None)
+    app = server.create_app(model_repo="test/model", model_module=_FlakyModel)
+    async with _client(app) as client:
+        await client.post("/prepare")
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            status = (await client.get("/readyz")).json()
+            if status["prepare_state"] == "ready":
+                break
+            await asyncio.sleep(0.01)
+
+    assert status["prepare_state"] == "ready"
+    assert status["prepare_attempt"] == 3
+    assert _FlakyModel.calls == 3
+
+
+def test_prepare_network_error_classification_follows_exception_chain():
+    root = TimeoutError("download timed out")
+    wrapped = RuntimeError("model warm-up failed")
+    wrapped.__cause__ = root
+
+    assert server._is_retryable_prepare_error(wrapped) is True
+    assert server._is_retryable_prepare_error(socket.gaierror(8, "name resolution failed")) is True
+    assert server._is_retryable_prepare_error(RuntimeError("SSL certificate handshake failed")) is True
+    assert server._is_retryable_prepare_error(RuntimeError("invalid model files")) is False
+
+
+def test_prepare_limits_are_fixed_to_two_retries_and_thirty_minutes():
+    assert server.PREPARE_MAX_ATTEMPTS == 3
+    assert server.PREPARE_TIMEOUT_SECONDS == 30 * 60
 
 
 async def test_transcribe_returns_clean_response_on_success(app_factory):

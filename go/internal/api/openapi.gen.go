@@ -981,6 +981,17 @@ type SecurityRefusalResponseError string
 // StorageMode defines model for StorageMode.
 type StorageMode string
 
+// SttStatusResponse defines model for SttStatusResponse.
+type SttStatusResponse struct {
+	Attempt     int    `json:"attempt"`
+	CanRetry    bool   `json:"can_retry"`
+	MaxAttempts int    `json:"max_attempts"`
+	Message     string `json:"message"`
+	Mode        string `json:"mode"`
+	Model       string `json:"model"`
+	State       string `json:"state"`
+}
+
 // TimelinePatchFailureDetail defines model for TimelinePatchFailureDetail.
 type TimelinePatchFailureDetail struct {
 	AppliedCount int                   `json:"applied_count"`
@@ -1491,6 +1502,12 @@ type ServerInterface interface {
 	// Update Memory Statement
 	// (PATCH /api/memories/{memory_key})
 	UpdateMemoryStatementApiMemoriesMemoryKeyPatch(w http.ResponseWriter, r *http.Request, memoryKey string)
+	// Prepare local STT
+	// (POST /api/stt/prepare)
+	SttPrepareApiSttPreparePost(w http.ResponseWriter, r *http.Request)
+	// Local STT status
+	// (GET /api/stt/status)
+	SttStatusApiSttStatusGet(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -1794,6 +1811,18 @@ func (_ Unimplemented) DeleteMemoryApiMemoriesMemoryKeyDelete(w http.ResponseWri
 // Update Memory Statement
 // (PATCH /api/memories/{memory_key})
 func (_ Unimplemented) UpdateMemoryStatementApiMemoriesMemoryKeyPatch(w http.ResponseWriter, r *http.Request, memoryKey string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Prepare local STT
+// (POST /api/stt/prepare)
+func (_ Unimplemented) SttPrepareApiSttPreparePost(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Local STT status
+// (GET /api/stt/status)
+func (_ Unimplemented) SttStatusApiSttStatusGet(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -3110,6 +3139,34 @@ func (siw *ServerInterfaceWrapper) UpdateMemoryStatementApiMemoriesMemoryKeyPatc
 	handler.ServeHTTP(w, r)
 }
 
+// SttPrepareApiSttPreparePost operation middleware
+func (siw *ServerInterfaceWrapper) SttPrepareApiSttPreparePost(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SttPrepareApiSttPreparePost(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SttStatusApiSttStatusGet operation middleware
+func (siw *ServerInterfaceWrapper) SttStatusApiSttStatusGet(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SttStatusApiSttStatusGet(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -3372,6 +3429,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/memories/{memory_key}", wrapper.UpdateMemoryStatementApiMemoriesMemoryKeyPatch)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/stt/prepare", wrapper.SttPrepareApiSttPreparePost)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/stt/status", wrapper.SttStatusApiSttStatusGet)
 	})
 
 	return r

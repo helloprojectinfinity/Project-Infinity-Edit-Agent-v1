@@ -11,6 +11,7 @@ export type FsListEntry = Schemas["FsListEntry"];
 export type FsListResponse = Schemas["FsListResponse"];
 export type FsRootsResponse = Schemas["FsRootsResponse"];
 export type FsPickResponse = Schemas["FsPickResponse"];
+export type SttStatusResponse = Schemas["SttStatusResponse"];
 
 export type MaterialAsset = Schemas["MaterialAsset"];
 export type MaterialsResponse = Schemas["MaterialsResponse"];
@@ -410,6 +411,17 @@ export const api = {
   fsList(path: string): Promise<FsListResponse> {
     const params = new URLSearchParams({ path });
     return apiFetch<FsListResponse>(`/api/fs/list?${params.toString()}`);
+  },
+
+  sttStatus(): Promise<SttStatusResponse> {
+    return apiFetch<SttStatusResponse>("/api/stt/status");
+  },
+
+  prepareStt(): Promise<SttStatusResponse> {
+    return apiFetch<SttStatusResponse>("/api/stt/prepare", {
+      method: "POST",
+      headers: JSON_MUTATION_HEADERS
+    });
   },
 
   // media 族 URL 由浏览器原生 <img>/<video> 直连（peaks 也走同一带 token 的 URL fetch），

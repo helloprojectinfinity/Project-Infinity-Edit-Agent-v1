@@ -3,6 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AudioLines,
   FileText,
   Film,
   Folder,
@@ -65,6 +66,12 @@ export function AssetsPanel({
     queryKey: queryKeys.materials(draftId),
     queryFn: () => api.listMaterials(draftId),
     refetchInterval: 5_000
+  });
+  const sttStatusQuery = useQuery({
+    queryKey: queryKeys.sttStatus,
+    queryFn: api.sttStatus,
+    refetchInterval: (query) =>
+      query.state.data?.state === "preparing" ? 2_000 : 15_000
   });
   useMaterialsEvents(draftId, enableEvents);
 
@@ -180,6 +187,13 @@ export function AssetsPanel({
       queryClient.setQueryData(queryKeys.materials(draftId), response);
     }
   });
+  const prepareStt = useMutation({
+    mutationFn: api.prepareStt,
+    onSuccess: (response) => {
+      queryClient.setQueryData(queryKeys.sttStatus, response);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.sttStatus });
+    }
+  });
 
   const assets = materialsQuery.data?.assets ?? [];
   const folders = useMemo(() => foldersAt(assets, currentDir), [assets, currentDir]);
@@ -248,6 +262,36 @@ export function AssetsPanel({
           </button>
         </div>
       </header>
+
+      {sttStatusQuery.data?.mode === "local" ? (
+        <div
+          className={`flex shrink-0 items-start gap-2 border-b px-3 py-2 text-2xs ${
+            sttStatusQuery.data.state === "failed" || sttStatusQuery.data.state === "unavailable"
+              ? "border-danger/30 bg-danger/10 text-danger"
+              : sttStatusQuery.data.state === "ready"
+                ? "border-line bg-raised text-fg-muted"
+                : "border-warn/30 bg-warn/10 text-warn"
+          }`}
+          role="status"
+        >
+          {sttStatusQuery.data.state === "preparing" ? (
+            <Loader2 className="mt-0.5 shrink-0 animate-spin" size={13} aria-hidden />
+          ) : (
+            <AudioLines className="mt-0.5 shrink-0" size={13} aria-hidden />
+          )}
+          <span className="min-w-0 flex-1 leading-4">{sttStatusQuery.data.message}</span>
+          {sttStatusQuery.data.can_retry ? (
+            <button
+              className="shrink-0 rounded border border-current/30 px-1.5 py-0.5 font-medium hover:bg-black/5 disabled:opacity-40"
+              type="button"
+              disabled={prepareStt.isPending}
+              onClick={() => prepareStt.mutate()}
+            >
+              {prepareStt.isPending ? "正在重試" : "重試"}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {currentDir !== "" ? (
         <nav
